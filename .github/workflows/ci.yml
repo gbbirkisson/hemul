@@ -32,6 +32,10 @@ jobs:
 
       - name: "Install rust toolchain"
         run: rustup show
+
+      - name: Install assembler
+        if: matrix.target == 'test'
+        run: sudo apt-get xa65
   
       - name: Run ${{ matrix.target }}
         run: make ${{ matrix.target }}
