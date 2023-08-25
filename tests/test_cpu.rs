@@ -1,9 +1,9 @@
-mod cpu;
-mod device;
-mod memory;
-mod prelude;
+extern crate hemul;
 
-fn main() {
+use hemul::asm_test;
+
+#[test]
+fn simple_addition() {
     let snapshot = asm_test!(
         r#"
     ; 1 + 2
@@ -13,4 +13,5 @@ fn main() {
     NOP
         "#
     );
+    assert_eq!(snapshot.dump[0x0402], 3)
 }

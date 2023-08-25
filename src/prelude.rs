@@ -1,17 +1,20 @@
 #[macro_export]
 macro_rules! asm {
     ($a:expr) => {
-        crate::cpu::Cpu::new(crate::memory::Memory::from($a))
+        hemul::cpu::Cpu::new(hemul::memory::Memory::from($a))
     };
 }
 
 #[macro_export]
 macro_rules! asm_test {
     ($a:expr) => {{
-        use device::Tickable;
-        let mut cpu = asm!($a);
+        use hemul::device::Tickable;
+        let mut cpu = hemul::cpu::Cpu::new(hemul::memory::Memory::from($a));
         cpu.tick_until_nop();
         cpu.tick();
-        cpu.snapshot()
+        let snapshot = cpu.snapshot();
+        assert!(snapshot.is_some());
+        let snapshot = snapshot.unwrap();
+        dbg!(snapshot)
     }};
 }

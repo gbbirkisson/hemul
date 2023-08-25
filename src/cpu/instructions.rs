@@ -51,7 +51,6 @@ where
     T: Addressable,
 {
     fn tick(&mut self) {
-        dbg!(&self.op);
         self.op = match self.op {
             // If the CPU had an error do nothing
             Op::Error(error) => Op::Error(error),

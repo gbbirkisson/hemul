@@ -49,25 +49,27 @@ impl From<File> for Memory {
 
 impl From<&'static str> for Memory {
     fn from(value: &'static str) -> Self {
-        let mut child = Command::new("xa")
+        let child = Command::new("xa")
             .args(["-o", "-", "/dev/stdin"])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .spawn()
             .expect("Failed to start xa");
 
-        let mut stdin = child.stdin.take().expect("Failed to get stdin");
-        std::thread::spawn(move || {
-            stdin
-                .write_all(value.as_bytes())
-                .expect("Failed to write to stdin");
-        });
-        let output = child.wait_with_output().expect("Failed to read stdout");
+        child
+            .stdin
+            .expect("Failed to get stdin")
+            .write_all(value.as_bytes())
+            .expect("Failed to write to stdin");
 
         let mut memory = Memory::new();
-        for (i, byte) in output.stdout.into_iter().enumerate() {
-            memory[i as u16] = byte;
-        }
+
+        child
+            .stdout
+            .expect("Failed to get stdout")
+            .read(&mut memory.0[..])
+            .expect("Failed to read stdout");
+
         memory
     }
 }
