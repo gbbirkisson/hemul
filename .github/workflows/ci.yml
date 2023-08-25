@@ -35,7 +35,7 @@ jobs:
 
       - name: Install assembler
         if: matrix.target == 'test'
-        run: sudo apt-get xa65
+        run: sudo apt-get install xa65 -y
   
       - name: Run ${{ matrix.target }}
         run: make ${{ matrix.target }}
