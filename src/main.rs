@@ -1,21 +1,10 @@
 mod cpu;
-use cpu::*;
-
 mod device;
-
 mod memory;
-use memory::*;
-
 mod prelude;
 
-impl From<&'static str> for Cpu<Memory> {
-    fn from(_value: &'static str) -> Self {
-        todo!()
-    }
-}
-
 fn main() {
-    let mut cpu = asm!(
+    let snapshot = asm_test!(
         r#"
     ; 1 + 2
     LDA     #01
@@ -24,5 +13,4 @@ fn main() {
     NOP
         "#
     );
-    cpu.tick_until_nop();
 }

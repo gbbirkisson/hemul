@@ -1,11 +1,13 @@
+use self::snapshots::Snapshot;
 use crate::device::{Addressable, Tickable};
-
-mod instructions;
 use instructions::*;
 
-type Reg16 = u16;
-type Reg8 = u8;
-type PFlag = bool;
+mod instructions;
+mod snapshots;
+
+pub type Reg16 = u16;
+pub type Reg8 = u8;
+pub type PFlag = bool;
 
 pub(crate) const SP_START: u16 = 0x00ff;
 pub(crate) const PC_START: u16 = 0xfffc;
@@ -76,6 +78,35 @@ where
         let res = self.read(self.PC);
         self.PC += 1;
         res
+    }
+
+    pub fn snapshot(&self) -> Option<Snapshot> {
+        match self.op {
+            Op::None => {
+                let mut dump = Vec::with_capacity(std::u16::MAX as usize);
+                for addr in 0..std::u16::MAX {
+                    dump.push(self.read(addr));
+                }
+                Some(Snapshot {
+                    dump,
+                    PC: self.PC,
+                    SP: self.SP,
+
+                    A: self.A,
+                    X: self.X,
+                    Y: self.Y,
+
+                    C: self.C,
+                    Z: self.Z,
+                    I: self.I,
+                    D: self.D,
+                    B: self.B,
+                    V: self.V,
+                    N: self.N,
+                })
+            }
+            _ => None,
+        }
     }
 
     pub fn tick_until_nop(&mut self) {
