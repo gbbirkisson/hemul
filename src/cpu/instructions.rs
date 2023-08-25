@@ -1,48 +1,27 @@
-use crate::device::{Addressable, Tickable};
-
-type Reg16 = u16;
-type Reg8 = u8;
-type PFlag = bool;
-
-const SP_START: u8 = 0x00ff;
-const PC_START: u16 = 0xfffc;
-
-#[allow(non_snake_case, dead_code)]
-pub struct Cpu<T: Addressable> {
-    addr: T,
-
-    PC: Reg16, // Program Counter
-    SP: Reg8,  // Stack Pointer
-
-    A: Reg8, // Accumulator
-    X: Reg8, // Index Register X
-    Y: Reg8, // Index Register Y
-
-    C: PFlag, // Carry Flag
-    Z: PFlag, // Zero Flag
-    I: PFlag, // Interupt Disable
-    D: PFlag, // Decimal Mode
-    B: PFlag, // Break Command
-    V: PFlag, // Overflow Flag
-    N: PFlag, // Negative Flag
-
-    op: Op,
-}
+use crate::cpu::*;
 
 #[derive(Debug, Clone, Copy)]
-enum CpuError {
+pub(crate) enum CpuError {
     BadOpCode(u8),
 }
 
 #[derive(Debug, Clone)]
-enum MemAddr {
+pub(crate) enum MemAddr {
     None,
     Half(u8),
     Full(u16),
 }
 
+impl From<(u8, u8)> for MemAddr {
+    fn from((addr, page): (u8, u8)) -> Self {
+        let addr = addr as u16;
+        let page = page as u16;
+        MemAddr::Full(page << 8 | addr)
+    }
+}
+
 #[derive(Debug, Clone)]
-enum Op {
+pub(crate) enum Op {
     // Custom Ops
     Error(CpuError),
     Reset(MemAddr),
@@ -63,69 +42,6 @@ impl From<u8> for Op {
             0x69 => Op::AdcIm,
             0x8d => Op::StaAbs(MemAddr::None),
             _ => Op::Error(CpuError::BadOpCode(value)),
-        }
-    }
-}
-
-#[allow(dead_code)]
-impl<T> Cpu<T>
-where
-    T: Addressable,
-{
-    pub fn new(addr: T) -> Self {
-        Self {
-            addr,
-
-            PC: 0,
-            SP: 0,
-
-            A: 0,
-            X: 0,
-            Y: 0,
-
-            C: false,
-            Z: false,
-            I: false,
-            D: false,
-            B: false,
-            V: false,
-            N: false,
-
-            op: Op::Reset(MemAddr::None),
-        }
-    }
-
-    fn reset(&mut self) {
-        self.op = Op::Reset(MemAddr::None);
-    }
-
-    fn read(&self, addr: u16) -> u8 {
-        self.addr[addr]
-    }
-
-    fn write(&mut self, addr: u16, value: u8) {
-        self.addr[addr] = value;
-    }
-
-    fn fetch(&mut self) -> u8 {
-        let res = self.read(self.PC);
-        self.PC += 1;
-        res
-    }
-
-    pub fn tick_until_nop(&mut self) {
-        loop {
-            match self.op {
-                Op::Nop | Op::Error(_) => break,
-                _ => {}
-            }
-            self.tick();
-        }
-    }
-
-    pub fn tick_for(&mut self, count: usize) {
-        for _ in 0..count {
-            self.tick()
         }
     }
 }
@@ -199,10 +115,3 @@ where
     }
 }
 
-impl From<(u8, u8)> for MemAddr {
-    fn from((addr, page): (u8, u8)) -> Self {
-        let addr = addr as u16;
-        let page = page as u16;
-        MemAddr::Full(page << 8 | addr)
-    }
-}
