@@ -8,6 +8,7 @@ use crate::device::Addressable;
 pub struct Memory(Vec<u8>);
 
 impl Memory {
+    #[must_use]
     pub fn new() -> Self {
         Self(vec![0; std::u16::MAX as usize])
     }
@@ -29,9 +30,15 @@ impl IndexMut<u16> for Memory {
     }
 }
 
+impl Default for Memory {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl From<File> for Memory {
     fn from(mut f: File) -> Self {
-        let mut memory = Memory::new();
+        let mut memory = Self::new();
         let mut offset = 0;
         let buf_len = 10;
         loop {
@@ -62,9 +69,9 @@ impl From<&'static str> for Memory {
             .write_all(value.as_bytes())
             .expect("Failed to write to stdin");
 
-        let mut memory = Memory::new();
+        let mut memory = Self::new();
 
-        child
+        let _ = child
             .stdout
             .expect("Failed to get stdout")
             .read(&mut memory.0[..])

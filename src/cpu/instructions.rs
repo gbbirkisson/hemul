@@ -1,12 +1,12 @@
-use crate::cpu::*;
+use crate::cpu::{Addressable, Cpu, Tickable, PC_START, SP_START};
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) enum CpuError {
+pub enum CpuError {
     BadOpCode(u8),
 }
 
 #[derive(Debug, Clone)]
-pub(crate) enum MemAddr {
+pub enum MemAddr {
     None,
     Half(u8),
     Full(u16),
@@ -14,14 +14,14 @@ pub(crate) enum MemAddr {
 
 impl From<(u8, u8)> for MemAddr {
     fn from((addr, page): (u8, u8)) -> Self {
-        let addr = addr as u16;
-        let page = page as u16;
-        MemAddr::Full(page << 8 | addr)
+        let addr = u16::from(addr);
+        let page = u16::from(page);
+        Self::Full(page << 8 | addr)
     }
 }
 
 #[derive(Debug, Clone)]
-pub(crate) enum Op {
+pub enum Op {
     // Custom Ops
     Error(CpuError),
     Reset(MemAddr),
@@ -37,11 +37,11 @@ pub(crate) enum Op {
 impl From<u8> for Op {
     fn from(value: u8) -> Self {
         match value {
-            0xEA => Op::Nop,
-            0xA9 => Op::LdaIm,
-            0x69 => Op::AdcIm,
-            0x8d => Op::StaAbs(MemAddr::None),
-            _ => Op::Error(CpuError::BadOpCode(value)),
+            0xEA => Self::Nop,
+            0xA9 => Self::LdaIm,
+            0x69 => Self::AdcIm,
+            0x8d => Self::StaAbs(MemAddr::None),
+            _ => Self::Error(CpuError::BadOpCode(value)),
         }
     }
 }
@@ -91,7 +91,7 @@ where
             Op::LdaIm => {
                 self.A = self.fetch();
                 self.Z = self.A == 0;
-                self.N = (self.A & 0b1000000) > 0;
+                self.N = (self.A & 0b100_0000) > 0;
                 // TODO SIDE EFFECTS
                 Op::None
             }

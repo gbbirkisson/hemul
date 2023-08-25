@@ -24,8 +24,8 @@ pub struct Snapshot {
 
 impl std::fmt::Debug for Snapshot {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "\n")?;
-        write!(f, "PC\tSP\tA\tX\tY\tCZIDBVN\n")?;
+        writeln!(f)?;
+        writeln!(f, "PC\tSP\tA\tX\tY\tCZIDBVN")?;
         write!(
             f,
             "{:#01x}\t{:#01x}\t{:#01x}\t{:#01x}\t{:#01x}\t{}{}{}{}{}{}{}",
@@ -34,13 +34,13 @@ impl std::fmt::Debug for Snapshot {
             self.A,
             self.X,
             self.Y,
-            self.C as i32,
-            self.Z as i32,
-            self.I as i32,
-            self.D as i32,
-            self.B as i32,
-            self.V as i32,
-            self.N as i32,
+            i32::from(self.C),
+            i32::from(self.Z),
+            i32::from(self.I),
+            i32::from(self.D),
+            i32::from(self.B),
+            i32::from(self.V),
+            i32::from(self.N),
         )?;
         write!(f, "\n\n")?;
 
@@ -65,6 +65,6 @@ impl std::fmt::Debug for Snapshot {
             .read_to_string(&mut hexdump)
             .expect("Failed to read stdout");
 
-        write!(f, "{}", hexdump)
+        write!(f, "{hexdump}")
     }
 }

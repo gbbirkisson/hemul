@@ -13,5 +13,5 @@ fn simple_addition() {
     NOP
         "#
     );
-    assert_eq!(snapshot.dump[0x0402], 3)
+    assert_eq!(snapshot.dump[0x0402], 3);
 }

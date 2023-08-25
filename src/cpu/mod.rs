@@ -1,6 +1,6 @@
 use self::snapshots::Snapshot;
 use crate::device::{Addressable, Tickable};
-use instructions::*;
+use instructions::{MemAddr, Op};
 
 mod instructions;
 mod snapshots;
@@ -121,7 +121,7 @@ where
 
     pub fn tick_for(&mut self, count: usize) {
         for _ in 0..count {
-            self.tick()
+            self.tick();
         }
     }
 }
