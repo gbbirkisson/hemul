@@ -7,7 +7,7 @@ type PFlag = bool;
 const SP_START: u8 = 0x00ff;
 const PC_START: u16 = 0xfffc;
 
-#[allow(non_snake_case)]
+#[allow(non_snake_case, dead_code)]
 pub struct Cpu<T> {
     addr: T,
 
@@ -61,6 +61,7 @@ impl From<u8> for Op {
     }
 }
 
+#[allow(dead_code)]
 impl<T> Cpu<T>
 where
     T: Index<u16, Output = u8>,

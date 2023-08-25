@@ -1,4 +1,3 @@
-use std::fs::File;
 use std::io;
 
 mod cpu;
@@ -25,13 +24,13 @@ fn main() -> io::Result<()> {
     // let memory: Memory = File::open("a.o65")?.into();
     // let mut cpu = Cpu::new(memory);
     let mut cpu = asm!(
-        r"
+        r#"
     ; 1 + 2
     LDA     #01
     ADC     #02
     STA     $0402
     NOP
-    "
+        "#
     );
     cpu.tick_until_nop();
     Ok(())
