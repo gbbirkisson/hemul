@@ -3,6 +3,8 @@ use std::io;
 mod cpu;
 use cpu::*;
 
+mod device;
+
 mod memory;
 use memory::*;
 

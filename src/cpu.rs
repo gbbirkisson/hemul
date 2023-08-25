@@ -1,4 +1,4 @@
-use std::ops::{Index, IndexMut};
+use crate::device::{Addressable, Tickable};
 
 type Reg16 = u16;
 type Reg8 = u8;
@@ -8,7 +8,7 @@ const SP_START: u8 = 0x00ff;
 const PC_START: u16 = 0xfffc;
 
 #[allow(non_snake_case, dead_code)]
-pub struct Cpu<T> {
+pub struct Cpu<T: Addressable> {
     addr: T,
 
     PC: Reg16, // Program Counter
@@ -29,6 +29,11 @@ pub struct Cpu<T> {
     op: Op,
 }
 
+#[derive(Debug, Clone, Copy)]
+enum CpuError {
+    BadOpCode(u8),
+}
+
 #[derive(Debug, Clone)]
 enum MemAddr {
     None,
@@ -39,6 +44,7 @@ enum MemAddr {
 #[derive(Debug, Clone)]
 enum Op {
     // Custom Ops
+    Error(CpuError),
     Reset(MemAddr),
     None,
 
@@ -56,7 +62,7 @@ impl From<u8> for Op {
             0xA9 => Op::LdaIm,
             0x69 => Op::AdcIm,
             0x8d => Op::StaAbs(MemAddr::None),
-            _ => panic!("Invalid instruction: {:#01x}", value),
+            _ => Op::Error(CpuError::BadOpCode(value)),
         }
     }
 }
@@ -64,8 +70,7 @@ impl From<u8> for Op {
 #[allow(dead_code)]
 impl<T> Cpu<T>
 where
-    T: Index<u16, Output = u8>,
-    T: IndexMut<u16, Output = u8>,
+    T: Addressable,
 {
     pub fn new(addr: T) -> Self {
         Self {
@@ -111,7 +116,7 @@ where
     pub fn tick_until_nop(&mut self) {
         loop {
             match self.op {
-                Op::Nop => break,
+                Op::Nop | Op::Error(_) => break,
                 _ => {}
             }
             self.tick();
@@ -123,10 +128,18 @@ where
             self.tick()
         }
     }
+}
 
-    pub fn tick(&mut self) {
+impl<T> Tickable for Cpu<T>
+where
+    T: Addressable,
+{
+    fn tick(&mut self) {
         dbg!(&self.op);
         self.op = match self.op {
+            // If the CPU had an error do nothing
+            Op::Error(error) => Op::Error(error),
+
             // Reset processor, this should take 7 ticks, but we are just using 3.
             Op::Reset(MemAddr::None) => {
                 self.SP = SP_START;

@@ -2,6 +2,8 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::ops::{Index, IndexMut};
 
+use crate::device::Addressable;
+
 pub struct Memory(Vec<u8>);
 
 impl Memory {
@@ -9,6 +11,8 @@ impl Memory {
         Self(vec![0; std::u16::MAX as usize])
     }
 }
+
+impl Addressable for Memory {}
 
 impl Index<u16> for Memory {
     type Output = u8;
