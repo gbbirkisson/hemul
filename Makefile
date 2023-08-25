@@ -7,7 +7,11 @@ test:
 	cargo test
 
 .PHONY: lint
-lint: lint-clippy
+lint: lint-fmt lint-clippy
+
+.PHONY: lint-fmt
+lint-fmt:
+	cargo fmt -- --check
 
 .PHONY: lint-clippy
 lint-clippy:
