@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io::prelude::*;
 use std::ops::{Index, IndexMut};
+use std::process::{Command, Stdio};
 
 use crate::device::Addressable;
 
@@ -47,8 +48,26 @@ impl From<File> for Memory {
 }
 
 impl From<&'static str> for Memory {
-    fn from(s: &'static str) -> Self {
-        dbg!(s);
-        todo!()
+    fn from(value: &'static str) -> Self {
+        let mut child = Command::new("xa")
+            .args(["-o", "-", "/dev/stdin"])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .spawn()
+            .expect("Failed to start xa");
+
+        let mut stdin = child.stdin.take().expect("Failed to get stdin");
+        std::thread::spawn(move || {
+            stdin
+                .write_all(value.as_bytes())
+                .expect("Failed to write to stdin");
+        });
+        let output = child.wait_with_output().expect("Failed to read stdout");
+
+        let mut memory = Memory::new();
+        for (i, byte) in output.stdout.into_iter().enumerate() {
+            memory[i as u16] = byte;
+        }
+        memory
     }
 }

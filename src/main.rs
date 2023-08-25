@@ -1,5 +1,3 @@
-use std::io;
-
 mod cpu;
 use cpu::*;
 
@@ -16,15 +14,7 @@ impl From<&'static str> for Cpu<Memory> {
     }
 }
 
-fn main() -> io::Result<()> {
-    //     let mut cpu: Cpu<Memory> = r"
-    // ; 1 + 2
-    // LDA     #01
-    // ADC     #02
-    // STA     $0402
-    //     ".into();
-    // let memory: Memory = File::open("a.o65")?.into();
-    // let mut cpu = Cpu::new(memory);
+fn main() {
     let mut cpu = asm!(
         r#"
     ; 1 + 2
@@ -35,5 +25,4 @@ fn main() -> io::Result<()> {
         "#
     );
     cpu.tick_until_nop();
-    Ok(())
 }
