@@ -2,8 +2,6 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::ops::{Index, IndexMut};
 
-use crate::cpu::PC_START;
-
 pub struct Memory(Vec<u8>);
 
 impl Memory {
@@ -29,7 +27,7 @@ impl IndexMut<u16> for Memory {
 impl From<File> for Memory {
     fn from(mut f: File) -> Self {
         let mut memory = Memory::new();
-        let mut offset = PC_START.into();
+        let mut offset = 0;
         let buf_len = 10;
         loop {
             let read = f
@@ -41,5 +39,12 @@ impl From<File> for Memory {
             offset += read;
         }
         memory
+    }
+}
+
+impl From<&'static str> for Memory {
+    fn from(s: &'static str) -> Self {
+        dbg!(s);
+        todo!()
     }
 }

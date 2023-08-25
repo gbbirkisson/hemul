@@ -4,8 +4,8 @@ type Reg16 = u16;
 type Reg8 = u8;
 type PFlag = bool;
 
-pub const PC_START: u16 = 0xFF00;
-const SP_START: u8 = 0x00FF;
+const SP_START: u8 = 0x00ff;
+const PC_START: u16 = 0xfffc;
 
 #[allow(non_snake_case)]
 pub struct Cpu<T> {
@@ -26,7 +26,7 @@ pub struct Cpu<T> {
     V: PFlag, // Overflow Flag
     N: PFlag, // Negative Flag
 
-    op: Option<Op>,
+    op: Op,
 }
 
 #[derive(Debug, Clone)]
@@ -38,6 +38,12 @@ enum MemAddr {
 
 #[derive(Debug, Clone)]
 enum Op {
+    // Custom Ops
+    Reset(MemAddr),
+    None,
+
+    Nop,
+
     LdaIm,
     AdcIm,
     StaAbs(MemAddr),
@@ -46,6 +52,7 @@ enum Op {
 impl From<u8> for Op {
     fn from(value: u8) -> Self {
         match value {
+            0xEA => Op::Nop,
             0xA9 => Op::LdaIm,
             0x69 => Op::AdcIm,
             0x8d => Op::StaAbs(MemAddr::None),
@@ -60,7 +67,7 @@ where
     T: IndexMut<u16, Output = u8>,
 {
     pub fn new(addr: T) -> Self {
-        let mut cpu = Self {
+        Self {
             addr,
 
             PC: 0,
@@ -78,49 +85,35 @@ where
             V: false,
             N: false,
 
-            op: None,
-        };
-        cpu.reset();
-        cpu
+            op: Op::Reset(MemAddr::None),
+        }
     }
 
     fn reset(&mut self) {
-        self.PC = PC_START;
-        self.SP = SP_START;
-
-        self.A = 0;
-        self.X = 0;
-        self.Y = 0;
-
-        self.C = false;
-        self.Z = false;
-        self.I = false;
-        self.D = false;
-        self.B = false;
-        self.V = false;
-        self.N = false;
-
-        self.op = None;
+        self.op = Op::Reset(MemAddr::None);
     }
 
-    fn read(&mut self) -> u8 {
-        let res = self.addr[self.PC];
-        self.PC += 1;
-        res
+    fn read(&self, addr: u16) -> u8 {
+        self.addr[addr]
     }
 
     fn write(&mut self, addr: u16, value: u8) {
         self.addr[addr] = value;
     }
 
-    pub fn tick(&mut self) {
-        match dbg!(&self.op) {
-            None => {
-                self.op = Some(self.read().into());
+    fn fetch(&mut self) -> u8 {
+        let res = self.read(self.PC);
+        self.PC += 1;
+        res
+    }
+
+    pub fn tick_until_nop(&mut self) {
+        loop {
+            match self.op {
+                Op::Nop => break,
+                _ => {}
             }
-            Some(op) => {
-                self.op = self.handle_op(op.clone());
-            }
+            self.tick();
         }
     }
 
@@ -130,36 +123,72 @@ where
         }
     }
 
-    fn handle_op(&mut self, op: Op) -> Option<Op> {
-        match op {
+    pub fn tick(&mut self) {
+        dbg!(&self.op);
+        self.op = match self.op {
+            // Reset processor, this should take 7 ticks, but we are just using 3.
+            Op::Reset(MemAddr::None) => {
+                self.SP = SP_START;
+                self.PC = PC_START;
+
+                // self.A = 0;
+                // self.X = 0;
+                // self.Y = 0;
+
+                // * => Set by software?
+                self.C = false; // *
+                self.Z = false; // *
+                self.I = true;
+                self.D = false;
+                self.B = true;
+                self.V = false; // *
+                self.N = false; // *
+
+                Op::Reset(MemAddr::Half(self.fetch()))
+            }
+            Op::Reset(MemAddr::Half(addr)) => Op::Reset(MemAddr::from((addr, self.fetch()))),
+            Op::Reset(MemAddr::Full(addr)) => {
+                self.PC = addr;
+                Op::None
+            }
+
+            // No Op running, fetch next one
+            Op::None => Op::from(self.fetch()),
+
+            // Nop
+            Op::Nop => Op::None,
+
+            // Lda
             Op::LdaIm => {
-                self.A = self.read();
+                self.A = self.fetch();
                 self.Z = self.A == 0;
                 self.N = (self.A & 0b1000000) > 0;
                 // TODO SIDE EFFECTS
-                None
+                Op::None
             }
+
+            // Adc
             Op::AdcIm => {
-                self.A += self.read();
+                self.A += self.fetch();
                 // TODO SIDE EFFECTS
-                None
+                Op::None
             }
-            Op::StaAbs(MemAddr::None) => Some(Op::StaAbs(MemAddr::Half(self.read()))),
-            Op::StaAbs(MemAddr::Half(addr1)) => {
-                Some(Op::StaAbs(MemAddr::from((addr1, self.read()))))
-            }
+
+            // Sta
+            Op::StaAbs(MemAddr::None) => Op::StaAbs(MemAddr::Half(self.fetch())),
+            Op::StaAbs(MemAddr::Half(addr)) => Op::StaAbs(MemAddr::from((addr, self.fetch()))),
             Op::StaAbs(MemAddr::Full(addr)) => {
                 self.write(addr, self.A);
-                None
+                Op::None
             }
-        }
+        };
     }
 }
 
 impl From<(u8, u8)> for MemAddr {
-    fn from((addr1, addr2): (u8, u8)) -> Self {
-        let addr1 = addr1 as u16;
-        let addr2 = addr2 as u16;
-        MemAddr::Full(addr2 << 8 | addr1)
+    fn from((addr, page): (u8, u8)) -> Self {
+        let addr = addr as u16;
+        let page = page as u16;
+        MemAddr::Full(page << 8 | addr)
     }
 }
