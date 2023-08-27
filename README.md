@@ -36,7 +36,7 @@ You will need these binaries in your path to do testing:
     - [x] Print nice on exceptions, like hexdump?
 
 * CI
-    - [ ] Add github actions
+    - [x] Add github actions
 
 * Implement:
     - [ ] All the opcodes

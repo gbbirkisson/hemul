@@ -3,9 +3,9 @@ use std::io::prelude::*;
 use std::ops::{Index, IndexMut};
 use std::process::{Command, Stdio};
 
-use crate::device::Addressable;
+use crate::device::*;
 
-pub struct Memory(Vec<u8>);
+pub struct Memory(Vec<Byte>);
 
 impl Memory {
     #[must_use]
@@ -16,16 +16,16 @@ impl Memory {
 
 impl Addressable for Memory {}
 
-impl Index<u16> for Memory {
-    type Output = u8;
+impl Index<Word> for Memory {
+    type Output = Byte;
 
-    fn index(&self, index: u16) -> &Self::Output {
+    fn index(&self, index: Word) -> &Self::Output {
         &self.0[index as usize]
     }
 }
 
-impl IndexMut<u16> for Memory {
-    fn index_mut(&mut self, index: u16) -> &mut Self::Output {
+impl IndexMut<Word> for Memory {
+    fn index_mut(&mut self, index: Word) -> &mut Self::Output {
         &mut self.0[index as usize]
     }
 }

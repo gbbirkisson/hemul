@@ -1,27 +1,27 @@
 use self::snapshots::Snapshot;
-use crate::device::{Addressable, Tickable};
-use instructions::{MemAddr, Op};
+use crate::device::*;
+use instructions::*;
 
 mod instructions;
 mod snapshots;
 
-pub type Reg16 = u16;
-pub type Reg8 = u8;
 pub type PFlag = bool;
 
-pub(crate) const SP_START: u16 = 0x00ff;
-pub(crate) const PC_START: u16 = 0xfffc;
+pub(crate) const SP: Byte = 0xFF;
+pub(crate) const NMIB: (Word, Word) = (0xFFFA, 0xFFFB);
+pub(crate) const RESB: (Word, Word) = (0xFFFC, 0xFFFD);
+pub(crate) const IRQB: (Word, Word) = (0xFFFE, 0xFFFF);
 
 #[allow(non_snake_case, dead_code)]
 pub struct Cpu<T: Addressable> {
     addr: T,
 
-    PC: Reg16, // Program Counter
-    SP: Reg16, // Stack Pointer
+    PC: Word, // Program Counter
+    SP: Byte,  // Stack Pointer
 
-    A: Reg8, // Accumulator
-    X: Reg8, // Index Register X
-    Y: Reg8, // Index Register Y
+    A: Byte, // Accumulator
+    X: Byte, // Index Register X
+    Y: Byte, // Index Register Y
 
     C: PFlag, // Carry Flag
     Z: PFlag, // Zero Flag
@@ -31,7 +31,27 @@ pub struct Cpu<T: Addressable> {
     V: PFlag, // Overflow Flag
     N: PFlag, // Negative Flag
 
+    st: State,
     op: Op,
+}
+
+#[derive(Debug)]
+pub enum CpuError {
+    BadOpCode(Byte),
+}
+
+#[derive(Debug)]
+enum Interupt {
+    IRQB,
+    NMIB,
+}
+
+#[derive(Debug)]
+enum State {
+    None,
+    Reset,
+    Interupt(Interupt),
+    Error(CpuError),
 }
 
 #[allow(dead_code)]
@@ -58,23 +78,24 @@ where
             V: false,
             N: false,
 
-            op: Op::Reset(MemAddr::None),
+            op: Op::None,
+            st: State::Reset,
         }
     }
 
     fn reset(&mut self) {
-        self.op = Op::Reset(MemAddr::None);
+        self.st = State::Reset
     }
 
-    fn read(&self, addr: u16) -> u8 {
+    fn read(&self, addr: Word) -> Byte {
         self.addr[addr]
     }
 
-    fn write(&mut self, addr: u16, value: u8) {
+    fn write(&mut self, addr: Word, value: Byte) {
         self.addr[addr] = value;
     }
 
-    fn fetch(&mut self) -> u8 {
+    fn fetch(&mut self) -> Byte {
         let res = self.read(self.PC);
         self.PC += 1;
         res
@@ -111,8 +132,9 @@ where
 
     pub fn tick_until_nop(&mut self) {
         loop {
-            match self.op {
-                Op::Nop | Op::Error(_) => break,
+            match (&self.st, &self.op) {
+                (State::Error(_), _) => break,
+                (_, Op::Nop) => break,
                 _ => {}
             }
             self.tick();
@@ -122,6 +144,49 @@ where
     pub fn tick_for(&mut self, count: usize) {
         for _ in 0..count {
             self.tick();
+        }
+    }
+}
+
+impl<T> Tickable for Cpu<T>
+where
+    T: Addressable,
+{
+    fn tick(&mut self) {
+        dbg!(&self.st, &self.op);
+        match (&self.st, &self.op) {
+            // Handle special states
+            (State::Reset, _) => {
+                self.SP = SP;
+
+                self.PC = Address::from((self.read(RESB.0), self.read(RESB.1))).into();
+
+                self.A = 0;
+                self.X = 0;
+                self.Y = 0;
+
+                // * => Set by software?
+                self.C = false; // *
+                self.Z = false; // *
+                self.I = true;
+                self.D = false;
+                self.B = true;
+                self.V = false; // *
+                self.N = false; // *
+                
+                self.st = State::None;
+                self.op = Op::None;
+            }
+            (State::Interupt(Interupt::IRQB), _) => todo!(),
+            (State::Interupt(Interupt::NMIB), _) => todo!(),
+            (State::Error(_), _) => {
+                // Do nothing
+            },
+
+            // Handle opcodes
+            (_, _) => {
+                self.op = self.handle(self.op.clone());
+            }
         }
     }
 }

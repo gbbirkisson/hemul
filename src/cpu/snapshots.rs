@@ -1,17 +1,17 @@
-use super::{PFlag, Reg16, Reg8};
+use super::{PFlag, Word, Byte};
 use std::io::prelude::*;
 use std::process::{Command, Stdio};
 
 #[allow(non_snake_case, dead_code)]
 pub struct Snapshot {
-    pub dump: Vec<u8>,
+    pub dump: Vec<Byte>,
 
-    pub PC: Reg16, // Program Counter
-    pub SP: Reg16, // Stack Pointer
+    pub PC: Word, // Program Counter
+    pub SP: Byte,  // Stack Pointer
 
-    pub A: Reg8, // Accumulator
-    pub X: Reg8, // Index Register X
-    pub Y: Reg8, // Index Register Y
+    pub A: Byte, // Accumulator
+    pub X: Byte, // Index Register X
+    pub Y: Byte, // Index Register Y
 
     pub C: PFlag, // Carry Flag
     pub Z: PFlag, // Zero Flag
