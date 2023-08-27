@@ -1,4 +1,4 @@
-use super::{PFlag, Word, Byte};
+use super::{Byte, PFlag, Word};
 use std::io::prelude::*;
 use std::process::{Command, Stdio};
 
@@ -7,7 +7,7 @@ pub struct Snapshot {
     pub dump: Vec<Byte>,
 
     pub PC: Word, // Program Counter
-    pub SP: Byte,  // Stack Pointer
+    pub SP: Byte, // Stack Pointer
 
     pub A: Byte, // Accumulator
     pub X: Byte, // Index Register X

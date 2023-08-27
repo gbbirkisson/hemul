@@ -1,20 +1,19 @@
-#[macro_export]
-macro_rules! asm {
-    ($a:expr) => {
-        hemul::cpu::Cpu::new(hemul::memory::Memory::from($a))
-    };
+use crate::{Address, Byte, Word};
+
+impl From<Address> for Word {
+    fn from(value: Address) -> Self {
+        let (addr, page) = match value {
+            Address::Short(_) => todo!("(addr, 0)?"),
+            Address::Full(addr, page) => (addr, page),
+        };
+        let addr = Self::from(addr);
+        let page = Self::from(page);
+        page << 8 | addr
+    }
 }
 
-#[macro_export]
-macro_rules! asm_test {
-    ($a:expr) => {{
-        use hemul::device::Tickable;
-        let mut cpu = hemul::cpu::Cpu::new(hemul::memory::Memory::from($a));
-        cpu.tick_until_nop();
-        cpu.tick();
-        let snapshot = cpu.snapshot();
-        assert!(snapshot.is_some());
-        let snapshot = snapshot.unwrap();
-        dbg!(snapshot)
-    }};
+impl From<(Byte, Byte)> for Address {
+    fn from(value: (Byte, Byte)) -> Self {
+        Self::Full(value.0, value.1)
+    }
 }

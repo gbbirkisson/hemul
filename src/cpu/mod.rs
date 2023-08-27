@@ -1,15 +1,17 @@
 use self::snapshots::Snapshot;
-use crate::device::*;
-use instructions::*;
+use crate::{Address, Addressable, Byte, Tickable, Word};
+use instructions::{Op, OpHandler};
 
 mod instructions;
 mod snapshots;
 
-pub type PFlag = bool;
+pub(crate) type PFlag = bool;
 
 pub(crate) const SP: Byte = 0xFF;
+#[allow(dead_code)]
 pub(crate) const NMIB: (Word, Word) = (0xFFFA, 0xFFFB);
 pub(crate) const RESB: (Word, Word) = (0xFFFC, 0xFFFD);
+#[allow(dead_code)]
 pub(crate) const IRQB: (Word, Word) = (0xFFFE, 0xFFFF);
 
 #[allow(non_snake_case, dead_code)]
@@ -17,7 +19,7 @@ pub struct Cpu<T: Addressable> {
     addr: T,
 
     PC: Word, // Program Counter
-    SP: Byte,  // Stack Pointer
+    SP: Byte, // Stack Pointer
 
     A: Byte, // Accumulator
     X: Byte, // Index Register X
@@ -36,22 +38,24 @@ pub struct Cpu<T: Addressable> {
 }
 
 #[derive(Debug)]
-pub enum CpuError {
+pub enum Error {
     BadOpCode(Byte),
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 enum Interupt {
-    IRQB,
-    NMIB,
+    Irqb,
+    Nmib,
 }
 
 #[derive(Debug)]
 enum State {
     None,
     Reset,
+    #[allow(dead_code)]
     Interupt(Interupt),
-    Error(CpuError),
+    Error(Error),
 }
 
 #[allow(dead_code)]
@@ -84,7 +88,7 @@ where
     }
 
     fn reset(&mut self) {
-        self.st = State::Reset
+        self.st = State::Reset;
     }
 
     fn read(&self, addr: Word) -> Byte {
@@ -133,8 +137,7 @@ where
     pub fn tick_until_nop(&mut self) {
         loop {
             match (&self.st, &self.op) {
-                (State::Error(_), _) => break,
-                (_, Op::Nop) => break,
+                (State::Error(_), _) | (_, Op::Nop) => break,
                 _ => {}
             }
             self.tick();
@@ -173,15 +176,15 @@ where
                 self.B = true;
                 self.V = false; // *
                 self.N = false; // *
-                
+
                 self.st = State::None;
                 self.op = Op::None;
             }
-            (State::Interupt(Interupt::IRQB), _) => todo!(),
-            (State::Interupt(Interupt::NMIB), _) => todo!(),
+            (State::Interupt(Interupt::Irqb), _) => todo!(),
+            (State::Interupt(Interupt::Nmib), _) => todo!(),
             (State::Error(_), _) => {
                 // Do nothing
-            },
+            }
 
             // Handle opcodes
             (_, _) => {

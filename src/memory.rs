@@ -3,7 +3,7 @@ use std::io::prelude::*;
 use std::ops::{Index, IndexMut};
 use std::process::{Command, Stdio};
 
-use crate::device::*;
+use crate::{Addressable, Byte, Word};
 
 pub struct Memory(Vec<Byte>);
 

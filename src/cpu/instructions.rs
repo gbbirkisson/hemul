@@ -1,16 +1,5 @@
-use crate::cpu::{Addressable, Cpu, CpuError, State};
-use crate::device::{Byte, Address};
-
-#[derive(Debug, Clone)]
-pub enum Op {
-    None,
-
-    Nop,
-
-    LdaIm,
-    AdcIm,
-    StaAbs(Option<Address>),
-}
+use crate::cpu::{Addressable, Cpu, Error, State};
+use crate::{Address, Byte};
 
 impl TryFrom<Byte> for Op {
     type Error = Byte;
@@ -26,8 +15,19 @@ impl TryFrom<Byte> for Op {
     }
 }
 
-pub(crate) trait OpHandler {
+pub trait OpHandler {
     fn handle(&mut self, op: Op) -> Op;
+}
+
+#[derive(Debug, Clone)]
+pub enum Op {
+    None,
+
+    Nop,
+
+    LdaIm,
+    AdcIm,
+    StaAbs(Option<Address>),
 }
 
 impl<T> OpHandler for Cpu<T>
@@ -36,18 +36,19 @@ where
 {
     fn handle(&mut self, op: Op) -> Op {
         match op {
-            Op::None => {
-                match Op::try_from(self.fetch()) {
-                    Ok(op) => op,
-                    Err(e) => {
-                        self.st = State::Error(CpuError::BadOpCode(e));
-                        Op::None
-                    },
+            // None => Try to load next instruction
+            Op::None => match Op::try_from(self.fetch()) {
+                Ok(op) => op,
+                Err(e) => {
+                    self.st = State::Error(Error::BadOpCode(e));
+                    Op::None
                 }
             },
 
+            // Nop
             Op::Nop => Op::None,
 
+            // Lda
             Op::LdaIm => {
                 self.A = self.fetch();
                 self.Z = self.A == 0;
@@ -56,15 +57,18 @@ where
                 Op::None
             }
 
+            // Adc
             Op::AdcIm => {
                 self.A += self.fetch();
                 // TODO SIDE EFFECTS
                 Op::None
             }
 
-
+            // Sta
             Op::StaAbs(None) => Op::StaAbs(Some(Address::Short(self.fetch()))),
-            Op::StaAbs(Some(Address::Short(addr))) => Op::StaAbs(Some(Address::Full(addr, self.fetch()))),
+            Op::StaAbs(Some(Address::Short(addr))) => {
+                Op::StaAbs(Some(Address::Full(addr, self.fetch())))
+            }
             Op::StaAbs(Some(addr)) => {
                 self.write(addr.into(), self.A);
                 Op::None

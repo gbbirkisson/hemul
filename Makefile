@@ -18,12 +18,12 @@ lint-clippy:
 	cargo clippy -- $(CLIPPY_ARGS)
 
 .PHONY: fix
-fix: fix-fmt fix-clippy
-
-.PHONY: fix-fmt
-fix-fmt:
-	cargo fmt
+fix: fix-clippy fix-fmt
 
 .PHONY: fix-clippy
 fix-clippy:
 	cargo clippy --fix --allow-staged -- $(CLIPPY_ARGS)
+
+.PHONY: fix-fmt
+fix-fmt:
+	cargo fmt
