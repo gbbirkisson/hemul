@@ -1,6 +1,5 @@
 use self::address::Address;
-use self::snapshots::Snapshot;
-use crate::{Addressable, Byte, Tickable, Word};
+use crate::{Addressable, Byte, Snapshottable, Tickable, Word};
 use instructions::{Op, OpHandler};
 
 pub(crate) mod address;
@@ -17,7 +16,7 @@ pub(crate) const RESB: (Word, Word) = (0xFFFC, 0xFFFD);
 pub(crate) const IRQB: (Word, Word) = (0xFFFE, 0xFFFF);
 
 #[allow(non_snake_case, dead_code)]
-pub struct Cpu<T: Addressable> {
+pub struct Cpu<T: Addressable + Snapshottable> {
     addr: T,
 
     PC: Word, // Program Counter
@@ -62,7 +61,7 @@ enum State {
 #[allow(dead_code)]
 impl<T> Cpu<T>
 where
-    T: Addressable,
+    T: Addressable + Snapshottable,
 {
     pub fn new(addr: T) -> Self {
         Self {
@@ -106,35 +105,6 @@ where
         res
     }
 
-    pub fn snapshot(&self) -> Option<Snapshot> {
-        match self.op {
-            Op::None => {
-                let mut dump = Vec::with_capacity(std::u16::MAX as usize);
-                for addr in 0..std::u16::MAX {
-                    dump.push(self.read(addr));
-                }
-                Some(Snapshot {
-                    dump,
-                    PC: self.PC,
-                    SP: self.SP,
-
-                    A: self.A,
-                    X: self.X,
-                    Y: self.Y,
-
-                    C: self.C,
-                    Z: self.Z,
-                    I: self.I,
-                    D: self.D,
-                    B: self.B,
-                    V: self.V,
-                    N: self.N,
-                })
-            }
-            _ => None,
-        }
-    }
-
     pub fn tick_until_nop(&mut self) -> Result<(), Error> {
         loop {
             if matches!(&self.op, Op::Nop) {
@@ -154,7 +124,7 @@ where
 
 impl<T> Tickable for Cpu<T>
 where
-    T: Addressable,
+    T: Addressable + Snapshottable,
 {
     type Error = Error;
 

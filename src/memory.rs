@@ -3,7 +3,7 @@ use std::io::prelude::*;
 use std::ops::{Index, IndexMut};
 use std::process::{Command, Stdio};
 
-use crate::{Addressable, Byte, Word};
+use crate::{Addressable, Byte, Snapshottable, Word};
 
 pub struct Memory(Vec<Byte>);
 
@@ -27,6 +27,15 @@ impl Index<Word> for Memory {
 impl IndexMut<Word> for Memory {
     fn index_mut(&mut self, index: Word) -> &mut Self::Output {
         &mut self.0[index as usize]
+    }
+}
+
+impl Snapshottable for Memory {
+    type Snapshot = Vec<Byte>;
+    type Error = ();
+
+    fn snapshot(&self) -> Result<Self::Snapshot, Self::Error> {
+        Ok(self.0.clone())
     }
 }
 

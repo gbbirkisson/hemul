@@ -22,6 +22,13 @@ pub trait Interuptable {
     fn interupt(&mut self, tp: impl Into<Interupt>) -> Result<(), Self::Error>;
 }
 
+pub trait Snapshottable {
+    type Snapshot;
+    type Error;
+
+    fn snapshot(&self) -> Result<Self::Snapshot, Self::Error>;
+}
+
 #[macro_export]
 macro_rules! asm {
     ($a:expr) => {

@@ -1,4 +1,6 @@
-use super::{Byte, PFlag, Word};
+use crate::{Addressable, Snapshottable};
+
+use super::{Byte, Cpu, Op, PFlag, Word};
 use std::io::prelude::*;
 use std::process::{Command, Stdio};
 
@@ -66,5 +68,40 @@ impl std::fmt::Debug for Snapshot {
             .expect("Failed to read stdout");
 
         write!(f, "{hexdump}")
+    }
+}
+
+impl<T> Snapshottable for Cpu<T>
+where
+    T: Addressable + Snapshottable<Snapshot = Vec<u8>>,
+{
+    type Snapshot = Snapshot;
+    type Error = String;
+
+    fn snapshot(&self) -> Result<Self::Snapshot, Self::Error> {
+        match self.op {
+            Op::None => Ok(Snapshot {
+                dump: self
+                    .addr
+                    .snapshot()
+                    .map_err(|_| "Failed to snap addresses")?,
+
+                PC: self.PC,
+                SP: self.SP,
+
+                A: self.A,
+                X: self.X,
+                Y: self.Y,
+
+                C: self.C,
+                Z: self.Z,
+                I: self.I,
+                D: self.D,
+                B: self.B,
+                V: self.V,
+                N: self.N,
+            }),
+            _ => Err("Op not None".to_string()),
+        }
     }
 }
