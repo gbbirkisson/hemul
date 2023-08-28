@@ -8,7 +8,8 @@ pub mod snapshot;
 
 pub(crate) type PFlag = bool;
 
-pub(crate) const SP: Byte = 0xFF;
+pub(crate) const SP_PAGE: Byte = 0x01;
+pub(crate) const SP_ADDR: Byte = 0xFF;
 #[allow(dead_code)]
 pub(crate) const NMIB: (Word, Word) = (0xFFFA, 0xFFFB);
 pub(crate) const RESB: (Word, Word) = (0xFFFC, 0xFFFD);
@@ -42,6 +43,7 @@ pub struct Cpu<T: Addressable> {
 pub enum Error {
     BadOpCode(Byte),
     OutOfBounds(Word),
+    StackOverflow,
 }
 
 impl From<Error> for String {
@@ -49,6 +51,7 @@ impl From<Error> for String {
         match value {
             Error::BadOpCode(code) => format!("BadOpCode: {code:#04x}"),
             Error::OutOfBounds(addr) => format!("OutOfBounds: {addr:#06x}"),
+            Error::StackOverflow => "StackOverflow".to_string(),
         }
     }
 }
@@ -126,6 +129,30 @@ where
         Ok(res)
     }
 
+    fn fetch_word(&mut self) -> Result<Word, Error> {
+        Ok(Address::Full(self.fetch()?, self.fetch()?).into())
+    }
+
+    fn stack_push(&mut self, byte: impl Into<Byte>) -> Result<(), Error> {
+        if self.SP == 0 {
+            Err(Error::StackOverflow)
+        } else {
+            self.write(Address::from((self.SP, SP_PAGE)), byte.into())?;
+            self.SP -= 1;
+            Ok(())
+        }
+    }
+
+    fn stack_pop(&mut self) -> Result<Byte, Error> {
+        if self.SP == SP_ADDR {
+            Err(Error::StackOverflow)
+        } else {
+            let res = self.read(Address::from((self.SP, SP_PAGE)))?;
+            self.SP += 1;
+            Ok(res)
+        }
+    }
+
     pub fn tick_until_nop(&mut self) -> Result<(), TickError> {
         loop {
             if matches!(&self.op, Op::Nop) {
@@ -148,11 +175,16 @@ where
     T: Addressable,
 {
     fn tick(&mut self) -> Result<(), TickError> {
-        dbg!(&self.st, &self.op);
+        if !matches!(&self.st, State::None) {
+            dbg!(&self.st);
+        }
+        if !matches!(&self.op, Op::None | Op::CycleBurn(_, _, _)) {
+            dbg!(&self.op);
+        }
         match (&self.st, &self.op) {
             // Handle special states
             (State::Reset, _) => {
-                self.SP = SP;
+                self.SP = SP_ADDR;
 
                 self.PC = Address::from((self.read(RESB.0)?, self.read(RESB.1)?)).into();
 
