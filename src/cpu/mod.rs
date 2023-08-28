@@ -1,5 +1,5 @@
 use self::address::Address;
-use crate::{Addressable, Byte, Snapshottable, Tickable, Word};
+use crate::{Addressable, Byte, Tickable, Word};
 use instructions::{Op, OpHandler};
 
 pub(crate) mod address;
@@ -16,7 +16,7 @@ pub(crate) const RESB: (Word, Word) = (0xFFFC, 0xFFFD);
 pub(crate) const IRQB: (Word, Word) = (0xFFFE, 0xFFFF);
 
 #[allow(non_snake_case, dead_code)]
-pub struct Cpu<T: Addressable + Snapshottable> {
+pub struct Cpu<T: Addressable> {
     addr: T,
 
     PC: Word, // Program Counter
@@ -61,7 +61,7 @@ enum State {
 #[allow(dead_code)]
 impl<T> Cpu<T>
 where
-    T: Addressable + Snapshottable,
+    T: Addressable,
 {
     pub fn new(addr: T) -> Self {
         Self {
@@ -124,7 +124,7 @@ where
 
 impl<T> Tickable for Cpu<T>
 where
-    T: Addressable + Snapshottable,
+    T: Addressable,
 {
     type Error = Error;
 

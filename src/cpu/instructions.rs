@@ -1,6 +1,6 @@
 use crate::cpu::address::Address;
 use crate::cpu::{Addressable, Cpu, Error};
-use crate::{Byte, Snapshottable};
+use crate::Byte;
 
 pub trait OpHandler {
     fn handle(&mut self, op: Op) -> Result<Op, Error>;
@@ -33,7 +33,7 @@ pub enum Op {
 
 impl<T> OpHandler for Cpu<T>
 where
-    T: Addressable + Snapshottable,
+    T: Addressable,
 {
     fn handle(&mut self, op: Op) -> Result<Op, Error> {
         Ok(match op {

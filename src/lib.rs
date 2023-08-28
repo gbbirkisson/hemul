@@ -1,5 +1,6 @@
 use std::ops::{Index, IndexMut};
 
+pub mod bus;
 pub mod cpu;
 pub mod memory;
 

@@ -8,7 +8,6 @@ use crate::{Addressable, Byte, Snapshottable, Word};
 pub struct Memory(Vec<Byte>);
 
 impl Memory {
-    #[must_use]
     pub fn new() -> Self {
         Self(vec![0; std::u16::MAX as usize])
     }
@@ -36,12 +35,6 @@ impl Snapshottable for Memory {
 
     fn snapshot(&self) -> Result<Self::Snapshot, Self::Error> {
         Ok(self.0.clone())
-    }
-}
-
-impl Default for Memory {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
