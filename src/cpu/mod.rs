@@ -1,5 +1,5 @@
 use self::address::Address;
-use crate::{Addressable, Byte, Tickable, Word};
+use crate::{Addressable, Byte, TickError, Tickable, Word};
 use instructions::{Op, OpHandler};
 
 pub(crate) mod address;
@@ -41,6 +41,12 @@ pub struct Cpu<T: Addressable> {
 #[derive(Debug, PartialEq, Eq)]
 pub enum Error {
     BadOpCode(Byte),
+}
+
+impl From<Error> for String {
+    fn from(value: Error) -> Self {
+        format!("{value:?}")
+    }
 }
 
 #[allow(dead_code)]
@@ -105,7 +111,7 @@ where
         res
     }
 
-    pub fn tick_until_nop(&mut self) -> Result<(), Error> {
+    pub fn tick_until_nop(&mut self) -> Result<(), TickError> {
         loop {
             if matches!(&self.op, Op::Nop) {
                 return self.tick();
@@ -114,7 +120,7 @@ where
         }
     }
 
-    pub fn tick_for(&mut self, count: usize) -> Result<(), Error> {
+    pub fn tick_for(&mut self, count: usize) -> Result<(), TickError> {
         for _ in 0..count {
             self.tick()?;
         }
@@ -126,9 +132,7 @@ impl<T> Tickable for Cpu<T>
 where
     T: Addressable,
 {
-    type Error = Error;
-
-    fn tick(&mut self) -> Result<(), Self::Error> {
+    fn tick(&mut self) -> Result<(), TickError> {
         dbg!(&self.st, &self.op);
         match (&self.st, &self.op) {
             // Handle special states

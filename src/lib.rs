@@ -3,16 +3,17 @@ use std::ops::{Index, IndexMut};
 pub mod bus;
 pub mod cpu;
 pub mod memory;
+pub mod oscillator;
 
 pub type Word = u16;
 pub type Byte = u8;
 
 pub trait Addressable: Index<Word, Output = Byte> + IndexMut<Word, Output = Byte> {}
 
-pub trait Tickable {
-    type Error;
+pub type TickError = String;
 
-    fn tick(&mut self) -> Result<(), Self::Error>;
+pub trait Tickable {
+    fn tick(&mut self) -> Result<(), TickError>;
 }
 
 pub type Interupt = u8;

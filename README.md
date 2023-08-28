@@ -40,8 +40,8 @@ You will need these binaries in your path to do testing:
 
 * Implement:
     - [ ] All the opcodes
-    - [ ] A bus
-    - [ ] Clock crystal
+    - [x] A bus
+    - [x] Clock crystal
     - [ ] A serial port with socat: [ref](https://www.baeldung.com/linux/make-virtual-serial-port)
 
 * Other
