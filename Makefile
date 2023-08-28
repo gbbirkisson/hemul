@@ -1,4 +1,4 @@
-CLIPPY_ARGS=-W clippy::pedantic -W clippy::nursery -W clippy::unwrap_used -A clippy::missing-const-for-fn
+CLIPPY_ARGS=-W clippy::pedantic -W clippy::nursery -W clippy::unwrap_used -A clippy::missing-const-for-fn -A clippy::missing-errors-doc
 
 dev: test lint
 
@@ -27,3 +27,8 @@ fix-clippy:
 .PHONY: fix-fmt
 fix-fmt:
 	cargo fmt
+
+.PHONY: doc
+doc:
+	cargo doc
+	xdg-open ./target/doc/hemul/index.html

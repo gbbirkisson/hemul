@@ -1,4 +1,10 @@
-use crate::{Address, Byte, Word};
+use crate::{Byte, Word};
+
+#[derive(Debug, Clone)]
+pub enum Address {
+    Short(Byte),
+    Full(Byte, Byte),
+}
 
 impl From<Address> for Word {
     fn from(value: Address) -> Self {

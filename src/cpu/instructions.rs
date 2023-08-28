@@ -1,8 +1,13 @@
-use crate::cpu::{Addressable, Cpu, Error, State};
-use crate::{Address, Byte};
+use crate::cpu::address::Address;
+use crate::cpu::{Addressable, Cpu, Error};
+use crate::Byte;
+
+pub trait OpHandler {
+    fn handle(&mut self, op: Op) -> Result<Op, Error>;
+}
 
 impl TryFrom<Byte> for Op {
-    type Error = Byte;
+    type Error = Error;
 
     fn try_from(value: Byte) -> Result<Self, Self::Error> {
         match value {
@@ -10,13 +15,9 @@ impl TryFrom<Byte> for Op {
             0xA9 => Ok(Self::LdaIm),
             0x69 => Ok(Self::AdcIm),
             0x8d => Ok(Self::StaAbs(None)),
-            _ => Err(value),
+            _ => Err(Error::BadOpCode(value)),
         }
     }
-}
-
-pub trait OpHandler {
-    fn handle(&mut self, op: Op) -> Op;
 }
 
 #[derive(Debug, Clone)]
@@ -34,16 +35,10 @@ impl<T> OpHandler for Cpu<T>
 where
     T: Addressable,
 {
-    fn handle(&mut self, op: Op) -> Op {
-        match op {
+    fn handle(&mut self, op: Op) -> Result<Op, Error> {
+        Ok(match op {
             // None => Try to load next instruction
-            Op::None => match Op::try_from(self.fetch()) {
-                Ok(op) => op,
-                Err(e) => {
-                    self.st = State::Error(Error::BadOpCode(e));
-                    Op::None
-                }
-            },
+            Op::None => Op::try_from(self.fetch())?,
 
             // Nop
             Op::Nop => Op::None,
@@ -70,9 +65,9 @@ where
                 Op::StaAbs(Some(Address::Full(addr, self.fetch())))
             }
             Op::StaAbs(Some(addr)) => {
-                self.write(addr.into(), self.A);
+                self.write(addr, self.A);
                 Op::None
             }
-        }
+        })
     }
 }

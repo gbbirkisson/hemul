@@ -1,9 +1,11 @@
+use self::address::Address;
 use self::snapshots::Snapshot;
-use crate::{Address, Addressable, Byte, Tickable, Word};
+use crate::{Addressable, Byte, Tickable, Word};
 use instructions::{Op, OpHandler};
 
+pub(crate) mod address;
 mod instructions;
-mod snapshots;
+pub mod snapshots;
 
 pub(crate) type PFlag = bool;
 
@@ -33,11 +35,11 @@ pub struct Cpu<T: Addressable> {
     V: PFlag, // Overflow Flag
     N: PFlag, // Negative Flag
 
-    st: State,
-    op: Op,
+    op: Op,    // Current Op Code
+    st: State, // Other state
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Error {
     BadOpCode(Byte),
 }
@@ -55,7 +57,6 @@ enum State {
     Reset,
     #[allow(dead_code)]
     Interupt(Interupt),
-    Error(Error),
 }
 
 #[allow(dead_code)]
@@ -91,12 +92,12 @@ where
         self.st = State::Reset;
     }
 
-    fn read(&self, addr: Word) -> Byte {
-        self.addr[addr]
+    fn write(&mut self, addr: impl Into<Word>, value: impl Into<Byte>) {
+        self.addr[addr.into()] = value.into();
     }
 
-    fn write(&mut self, addr: Word, value: Byte) {
-        self.addr[addr] = value;
+    fn read(&self, addr: impl Into<Word>) -> Byte {
+        self.addr[addr.into()]
     }
 
     fn fetch(&mut self) -> Byte {
@@ -134,20 +135,20 @@ where
         }
     }
 
-    pub fn tick_until_nop(&mut self) {
+    pub fn tick_until_nop(&mut self) -> Result<(), Error> {
         loop {
-            match (&self.st, &self.op) {
-                (State::Error(_), _) | (_, Op::Nop) => break,
-                _ => {}
+            if matches!(&self.op, Op::Nop) {
+                return self.tick();
             }
-            self.tick();
+            self.tick()?;
         }
     }
 
-    pub fn tick_for(&mut self, count: usize) {
+    pub fn tick_for(&mut self, count: usize) -> Result<(), Error> {
         for _ in 0..count {
-            self.tick();
+            self.tick()?;
         }
+        Ok(())
     }
 }
 
@@ -155,7 +156,9 @@ impl<T> Tickable for Cpu<T>
 where
     T: Addressable,
 {
-    fn tick(&mut self) {
+    type Error = Error;
+
+    fn tick(&mut self) -> Result<(), Self::Error> {
         dbg!(&self.st, &self.op);
         match (&self.st, &self.op) {
             // Handle special states
@@ -182,14 +185,12 @@ where
             }
             (State::Interupt(Interupt::Irqb), _) => todo!(),
             (State::Interupt(Interupt::Nmib), _) => todo!(),
-            (State::Error(_), _) => {
-                // Do nothing
-            }
 
             // Handle opcodes
             (_, _) => {
-                self.op = self.handle(self.op.clone());
+                self.op = self.handle(self.op.clone())?;
             }
         }
+        Ok(())
     }
 }

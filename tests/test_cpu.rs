@@ -1,6 +1,7 @@
 extern crate hemul;
 
-use hemul::asm_test;
+#[path = "utils.rs"]
+mod utils;
 
 #[test]
 fn simple_addition() {
