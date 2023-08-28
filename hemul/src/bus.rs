@@ -24,7 +24,16 @@ impl Bus {
     }
 }
 
-impl Addressable for Bus {}
+impl Addressable for Bus {
+    fn inside_bounds(&self, addr: Word) -> bool {
+        for (_, _, _, device) in &self.devices {
+            if device.inside_bounds(addr) {
+                return true;
+            }
+        }
+        false
+    }
+}
 
 impl Index<Word> for Bus {
     type Output = Byte;

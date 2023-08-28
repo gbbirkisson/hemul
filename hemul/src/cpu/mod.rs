@@ -41,11 +41,15 @@ pub struct Cpu<T: Addressable> {
 #[derive(Debug, PartialEq, Eq)]
 pub enum Error {
     BadOpCode(Byte),
+    OutOfBounds(Word),
 }
 
 impl From<Error> for String {
     fn from(value: Error) -> Self {
-        format!("{value:?}")
+        match value {
+            Error::BadOpCode(code) => format!("BadOpCode: {code:#04x}"),
+            Error::OutOfBounds(addr) => format!("OutOfBounds: {addr:#06x}"),
+        }
     }
 }
 
@@ -97,18 +101,29 @@ where
         self.st = State::Reset;
     }
 
-    fn write(&mut self, addr: impl Into<Word>, value: impl Into<Byte>) {
-        self.addr[addr.into()] = value.into();
+    fn write(&mut self, addr: impl Into<Word>, value: impl Into<Byte>) -> Result<(), Error> {
+        let addr = addr.into();
+        if self.addr.inside_bounds(addr) {
+            self.addr[addr] = value.into();
+            Ok(())
+        } else {
+            Err(Error::OutOfBounds(addr))
+        }
     }
 
-    fn read(&self, addr: impl Into<Word>) -> Byte {
-        self.addr[addr.into()]
+    fn read(&self, addr: impl Into<Word>) -> Result<Byte, Error> {
+        let addr = addr.into();
+        if self.addr.inside_bounds(addr) {
+            Ok(self.addr[addr])
+        } else {
+            Err(Error::OutOfBounds(addr))
+        }
     }
 
-    fn fetch(&mut self) -> Byte {
-        let res = self.read(self.PC);
+    fn fetch(&mut self) -> Result<Byte, Error> {
+        let res = self.read(self.PC)?;
         self.PC += 1;
-        res
+        Ok(res)
     }
 
     pub fn tick_until_nop(&mut self) -> Result<(), TickError> {
@@ -139,7 +154,7 @@ where
             (State::Reset, _) => {
                 self.SP = SP;
 
-                self.PC = Address::from((self.read(RESB.0), self.read(RESB.1))).into();
+                self.PC = Address::from((self.read(RESB.0)?, self.read(RESB.1)?)).into();
 
                 self.A = 0;
                 self.X = 0;

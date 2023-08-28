@@ -9,11 +9,19 @@ pub struct Memory(Vec<Byte>);
 
 impl Memory {
     pub fn new() -> Self {
-        Self(vec![0; std::u16::MAX as usize])
+        Self(vec![0; Word::MAX as usize + 1])
+    }
+
+    pub fn using(data: Vec<Byte>) -> Self {
+        Self(data)
     }
 }
 
-impl Addressable for Memory {}
+impl Addressable for Memory {
+    fn inside_bounds(&self, addr: Word) -> bool {
+        self.0.len() > addr.into()
+    }
+}
 
 impl Index<Word> for Memory {
     type Output = Byte;
@@ -58,12 +66,21 @@ impl From<File> for Memory {
 
 impl From<&str> for Memory {
     fn from(value: &str) -> Self {
-        let child = Command::new("xa")
-            .args(["-o", "-", "/dev/stdin"])
+        // let child = Command::new("xa")
+        //     .args(["-o", "-", "/dev/stdin"])
+        let child = Command::new("vasm6502_oldstyle")
+            .args([
+                "-Fbin",
+                "-dotdir",
+                "-o",
+                "/dev/stdout",
+                "-quiet",
+                "/dev/stdin",
+            ])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .spawn()
-            .expect("Failed to start xa");
+            .expect("Failed to start assembler");
 
         child
             .stdin
@@ -71,15 +88,14 @@ impl From<&str> for Memory {
             .write_all(value.as_bytes())
             .expect("Failed to write to stdin");
 
-        let mut memory = Self::new();
-
+        let mut data = Vec::new();
         let _ = child
             .stdout
             .expect("Failed to get stdout")
-            .read(&mut memory.0[..])
+            .read_to_end(&mut data)
             .expect("Failed to read stdout");
-
-        memory
+        data.resize(Word::MAX as usize + 1, 0);
+        Self::using(data)
     }
 }
 

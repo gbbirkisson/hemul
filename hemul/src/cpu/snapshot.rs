@@ -26,7 +26,6 @@ pub struct Snapshot {
 
 impl std::fmt::Debug for Snapshot {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f)?;
         writeln!(f, "PC\tSP\tA\tX\tY\tCZIDBVN")?;
         write!(
             f,

@@ -38,14 +38,14 @@ where
     fn handle(&mut self, op: Op) -> Result<Op, Error> {
         Ok(match op {
             // None => Try to load next instruction
-            Op::None => Op::try_from(self.fetch())?,
+            Op::None => Op::try_from(self.fetch()?)?,
 
             // Nop
             Op::Nop => Op::None,
 
             // Lda
             Op::LdaIm => {
-                self.A = self.fetch();
+                self.A = self.fetch()?;
                 self.Z = self.A == 0;
                 self.N = (self.A & 0b100_0000) > 0;
                 // TODO SIDE EFFECTS
@@ -54,18 +54,18 @@ where
 
             // Adc
             Op::AdcIm => {
-                self.A += self.fetch();
+                self.A += self.fetch()?;
                 // TODO SIDE EFFECTS
                 Op::None
             }
 
             // Sta
-            Op::StaAbs(None) => Op::StaAbs(Some(Address::Short(self.fetch()))),
+            Op::StaAbs(None) => Op::StaAbs(Some(Address::Short(self.fetch()?))),
             Op::StaAbs(Some(Address::Short(addr))) => {
-                Op::StaAbs(Some(Address::Full(addr, self.fetch())))
+                Op::StaAbs(Some(Address::Full(addr, self.fetch()?)))
             }
             Op::StaAbs(Some(addr)) => {
-                self.write(addr, self.A);
+                self.write(addr, self.A)?;
                 Op::None
             }
         })
