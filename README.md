@@ -26,9 +26,10 @@ You will need these binaries in your path to do testing:
 
 ## Running the VM
 
+With assemly code:
+
 ```console
-$ cd vm
-$ cat << EOF | cargo run -- -b - -a
+$ cat << EOF | cargo run -p hemul-vm -- -b - -a
     ; 1 + 2
     LDA     #01
     ADC     #02

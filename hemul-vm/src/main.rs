@@ -1,10 +1,10 @@
 use clap::Parser;
 use clap_stdin::MaybeStdin;
-use hemul::cpu::*;
-use hemul::memory::*;
-use hemul::bus::*;
-use hemul::oscillator::*;
-use hemul::*;
+use hemul::bus::Bus;
+use hemul::cpu::Cpu;
+use hemul::memory::Memory;
+use hemul::oscillator::Oscillator;
+use hemul::{Tickable, Word};
 
 /// Hemul VM
 #[derive(Parser, Debug)]
@@ -16,12 +16,12 @@ struct Args {
 
     /// Code passed in is assembly not machine code
     #[arg(short, long)]
-    #[clap(default_value_t=false)]
+    #[clap(default_value_t = false)]
     asm: bool,
 
     /// Frequency to run at
     #[arg(short, long)]
-    #[clap(default_value_t=1.79)]
+    #[clap(default_value_t = 1.79)]
     mhz: f64,
 }
 
