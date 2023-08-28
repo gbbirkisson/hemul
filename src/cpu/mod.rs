@@ -4,7 +4,7 @@ use instructions::{Op, OpHandler};
 
 pub(crate) mod address;
 mod instructions;
-pub mod snapshots;
+pub mod snapshot;
 
 pub(crate) type PFlag = bool;
 
