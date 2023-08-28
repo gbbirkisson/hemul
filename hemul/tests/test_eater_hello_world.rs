@@ -51,6 +51,9 @@ print:
   jmp print
 
 loop:
+  ; Added by me
+  nop
+  ; Added by me
   jmp loop
 
 message: .asciiz "Hello, world!"
