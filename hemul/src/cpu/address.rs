@@ -23,3 +23,11 @@ impl From<(Byte, Byte)> for Address {
         Self::Full(value.0, value.1)
     }
 }
+
+impl From<Word> for Address {
+    fn from(value: Word) -> Self {
+        let addr = value & 0b0000_0000_1111_1111;
+        let page = value >> 8;
+        Self::Full(addr as u8, page as u8)
+    }
+}
