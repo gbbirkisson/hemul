@@ -6,4 +6,4 @@ edition = "2021"
 [dependencies]
 clap = { version = "4.4.0", features = ["derive"] }
 clap-stdin = "0.2.1"
-hemul = { path = "../" }
+hemul = { path = "../hemul" }
