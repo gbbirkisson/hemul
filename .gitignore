@@ -1,2 +1,3 @@
 /target
+/vm/target
 *.o65

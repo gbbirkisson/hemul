@@ -6,6 +6,7 @@ Emulation of the 6502 micro processor
 
 * [Requirements](#requirements)
 * [Resources](#resources)
+* [Running the VM](#running-the-vm)
 * [TODO](#todo)
 
 <!-- vim-markdown-toc -->
@@ -22,6 +23,19 @@ You will need these binaries in your path to do testing:
 - https://www.youtube.com/watch?v=qJgsuQoy9bc&t=1042s
 - https://web.archive.org/web/20210912192127/http://www.obelisk.me.uk/6502/
 - https://www.youtube.com/watch?v=LnzuMJLZRdU&list=PLowKtXNTBypFbtuVMUVXNR0z1mu7dp7eH
+
+## Running the VM
+
+```console
+$ cd vm
+$ cat << EOF | cargo run -- -b - -a
+    ; 1 + 2
+    LDA     #01
+    ADC     #02
+    STA     $0402
+    NOP
+EOF
+```
 
 ## TODO
 
@@ -47,3 +61,11 @@ You will need these binaries in your path to do testing:
 * Other
     - [ ] Setup syntax highlighting for ASM: [ref](https://www.youtube.com/watch?v=v3o9YaHBM4Q&t)
 
+
+cat << EOF | cargo run -- -b - -a
+    ; 1 + 2
+    LDA     #01
+    ADC     #02
+    STA     $0402
+    NOP
+EOF

@@ -56,8 +56,8 @@ impl From<File> for Memory {
     }
 }
 
-impl From<&'static str> for Memory {
-    fn from(value: &'static str) -> Self {
+impl From<&str> for Memory {
+    fn from(value: &str) -> Self {
         let child = Command::new("xa")
             .args(["-o", "-", "/dev/stdin"])
             .stdin(Stdio::piped())
@@ -79,6 +79,16 @@ impl From<&'static str> for Memory {
             .read(&mut memory.0[..])
             .expect("Failed to read stdout");
 
+        memory
+    }
+}
+
+impl From<&[u8]> for Memory {
+    fn from(value: &[u8]) -> Self {
+        let mut memory = Self::new();
+        for (i, b) in value.iter().enumerate() {
+            memory.0[i] = *b;
+        }
         memory
     }
 }
