@@ -1,8 +1,10 @@
 use crate::{Addressable, Snapshottable};
 
-use super::{Byte, Cpu, Op, PFlag, Word};
-use std::io::prelude::*;
-use std::process::{Command, Stdio};
+use super::{Byte, Cpu, PFlag, Word};
+use std::{
+    io::prelude::*,
+    process::{Command, Stdio},
+};
 
 #[allow(non_snake_case, dead_code)]
 pub struct Snapshot {
@@ -26,7 +28,7 @@ pub struct Snapshot {
 
 impl std::fmt::Debug for Snapshot {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "PC\tSP\tA\tX\tY\tCZIDBVN")?;
+        writeln!(f, "PC\t\tSP\tA\tX\tY\tCZIDBVN")?;
         write!(
             f,
             "{:#01x}\t{:#01x}\t{:#01x}\t{:#01x}\t{:#01x}\t{}{}{}{}{}{}{}",
@@ -78,8 +80,8 @@ where
     type Error = String;
 
     fn snapshot(&self) -> Result<Self::Snapshot, Self::Error> {
-        match self.op {
-            Op::None => Ok(Snapshot {
+        match self.st {
+            None => Ok(Snapshot {
                 dump: self
                     .addr
                     .snapshot()
@@ -100,7 +102,7 @@ where
                 V: self.V,
                 N: self.N,
             }),
-            _ => Err("Op not None".to_string()),
+            _ => Err("State not None".to_string()),
         }
     }
 }

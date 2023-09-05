@@ -1,7 +1,9 @@
-use std::fs::File;
-use std::io::prelude::*;
-use std::ops::{Index, IndexMut};
-use std::process::{Command, Stdio};
+use std::{
+    fs::File,
+    io::prelude::*,
+    ops::{Index, IndexMut},
+    process::{Command, Stdio},
+};
 
 use crate::{Addressable, Byte, Snapshottable, Word};
 

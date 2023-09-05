@@ -1,8 +1,10 @@
-use self::address::Address;
+use self::{address::Address, instructions::AddressMode};
 use crate::{Addressable, Byte, TickError, Tickable, Word};
-use instructions::{Op, OpHandler};
+use executor::OpExecutor;
+use instructions::{Op, OpParser};
 
 pub(crate) mod address;
+mod executor;
 mod instructions;
 pub mod snapshot;
 
@@ -35,11 +37,10 @@ pub struct Cpu<T: Addressable> {
     V: PFlag, // Overflow Flag
     N: PFlag, // Negative Flag
 
-    op: Op,    // Current Op Code
-    st: State, // Other state
+    st: Option<State>, // Other state
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum Error {
     BadOpCode(Byte),
     OutOfBounds(Word),
@@ -65,7 +66,7 @@ enum Interupt {
 
 #[derive(Debug)]
 enum State {
-    None,
+    CycleBurn(Op, u8, u8),
     Reset,
     #[allow(dead_code)]
     Interupt(Interupt),
@@ -95,15 +96,69 @@ where
             V: false,
             N: false,
 
-            op: Op::None,
-            st: State::Reset,
+            st: Some(State::Reset),
         }
     }
 
+    /// Reset processor
     fn reset(&mut self) {
-        self.st = State::Reset;
+        self.st = Some(State::Reset);
     }
 
+    /// Read byte from address
+    fn read(&self, addr: impl Into<Word>) -> Result<(Word, Byte), Error> {
+        let addr = addr.into();
+        if self.addr.inside_bounds(addr) {
+            Ok((addr, self.addr[addr]))
+        } else {
+            Err(Error::OutOfBounds(addr))
+        }
+    }
+
+    /// Read a word from address and address + 1
+    fn read_word(&self, addr: impl Into<Word>) -> Result<Word, Error> {
+        let a1 = addr.into();
+        let a2 = a1 + 1;
+        let (_, addr) = self.read(a1)?;
+        let (_, page) = self.read(a2)?;
+        Ok(Address::Full(addr, page).into())
+    }
+
+    /// Fetch byte from memory that the PC points to and increment the PC
+    fn fetch(&mut self) -> Result<(Word, Byte), Error> {
+        let (addr, data) = self.read(self.PC)?;
+        self.PC += 1;
+        Ok((addr, data))
+    }
+
+    /// Fetch word from memory that the PC points to and increment the PC twice
+    fn fetch_word(&mut self) -> Result<Word, Error> {
+        let data = self.read_word(self.PC)?;
+        self.PC += 2;
+        Ok(data)
+    }
+
+    /// Fetch byte from memory using provided address mode
+    fn fetch_mode(&mut self, mode: &AddressMode) -> Result<(Word, Byte), Error> {
+        Ok(match mode {
+            AddressMode::Accumulator => todo!(),
+            AddressMode::Immediate => self.fetch()?,
+            AddressMode::ZeroPage => todo!(),
+            AddressMode::ZeroPageX => todo!(),
+            AddressMode::ZeroPageY => todo!(),
+            AddressMode::Absolute => {
+                let addr = self.fetch_word()?;
+                self.read(addr)?
+            }
+            AddressMode::AbsoluteX => todo!(),
+            AddressMode::AbsoluteY => todo!(),
+            AddressMode::Indirect => todo!(),
+            AddressMode::IndexedIndirect => todo!(),
+            AddressMode::IndirectIndexed => todo!(),
+        })
+    }
+
+    /// Write byte to address
     fn write(&mut self, addr: impl Into<Word>, value: impl Into<Byte>) -> Result<(), Error> {
         let addr = addr.into();
         if self.addr.inside_bounds(addr) {
@@ -114,25 +169,28 @@ where
         }
     }
 
-    fn read(&self, addr: impl Into<Word>) -> Result<Byte, Error> {
-        let addr = addr.into();
-        if self.addr.inside_bounds(addr) {
-            Ok(self.addr[addr])
-        } else {
-            Err(Error::OutOfBounds(addr))
-        }
+    /// Write byte into memory using provided address mode
+    fn write_mode(&mut self, mode: &AddressMode, value: impl Into<Byte>) -> Result<(), Error> {
+        match mode {
+            AddressMode::Accumulator => todo!(),
+            AddressMode::Immediate => todo!(),
+            AddressMode::ZeroPage => todo!(),
+            AddressMode::ZeroPageX => todo!(),
+            AddressMode::ZeroPageY => todo!(),
+            AddressMode::Absolute => {
+                let data = self.fetch_word()?;
+                self.write(data, value)?;
+            }
+            AddressMode::AbsoluteX => todo!(),
+            AddressMode::AbsoluteY => todo!(),
+            AddressMode::Indirect => todo!(),
+            AddressMode::IndexedIndirect => todo!(),
+            AddressMode::IndirectIndexed => todo!(),
+        };
+        Ok(())
     }
 
-    fn fetch(&mut self) -> Result<Byte, Error> {
-        let res = self.read(self.PC)?;
-        self.PC += 1;
-        Ok(res)
-    }
-
-    fn fetch_word(&mut self) -> Result<Word, Error> {
-        Ok(Address::Full(self.fetch()?, self.fetch()?).into())
-    }
-
+    /// Push byte onto the stack
     fn stack_push(&mut self, byte: impl Into<Byte>) -> Result<(), Error> {
         if self.SP == 0 {
             Err(Error::StackOverflow)
@@ -143,19 +201,58 @@ where
         }
     }
 
+    /// Pop byte from the stack
     fn stack_pop(&mut self) -> Result<Byte, Error> {
         if self.SP == SP_ADDR {
             Err(Error::StackOverflow)
         } else {
-            let res = self.read(Address::from((self.SP, SP_PAGE)))?;
+            let (_, data) = self.read(Address::from((self.SP, SP_PAGE)))?;
             self.SP += 1;
-            Ok(res)
+            Ok(data)
         }
+    }
+
+    /// Get status register
+    fn status_get(&self) -> Byte {
+        let mut res = 0;
+        if self.C {
+            res |= 0b0100_0000;
+        }
+        if self.Z {
+            res |= 0b0010_0000;
+        }
+        if self.I {
+            res |= 0b0001_0000;
+        }
+        if self.D {
+            res |= 0b0000_1000;
+        }
+        if self.B {
+            res |= 0b0000_0100;
+        }
+        if self.V {
+            res |= 0b0000_0010;
+        }
+        if self.N {
+            res |= 0b0000_0001;
+        }
+        res
+    }
+
+    /// Set status register
+    fn status_set(&mut self, status: Byte) {
+        self.C = status & 0b0100_0000 > 0;
+        self.Z = status & 0b0010_0000 > 0;
+        self.I = status & 0b0001_0000 > 0;
+        self.D = status & 0b0000_1000 > 0;
+        self.B = status & 0b0000_0100 > 0;
+        self.V = status & 0b0000_0010 > 0;
+        self.N = status & 0b0000_0001 > 0;
     }
 
     pub fn tick_until_nop(&mut self) -> Result<(), TickError> {
         loop {
-            if matches!(&self.op, Op::Nop) {
+            if matches!(&self.st, Some(State::CycleBurn(Op::Nop, _, _))) {
                 return self.tick();
             }
             self.tick()?;
@@ -175,43 +272,49 @@ where
     T: Addressable,
 {
     fn tick(&mut self) -> Result<(), TickError> {
-        if !matches!(&self.st, State::None) {
-            dbg!(&self.st);
-        }
-        if !matches!(&self.op, Op::None | Op::CycleBurn(_, _, _)) {
-            dbg!(&self.op);
-        }
-        match (&self.st, &self.op) {
-            // Handle special states
-            (State::Reset, _) => {
-                self.SP = SP_ADDR;
-
-                self.PC = Address::from((self.read(RESB.0)?, self.read(RESB.1)?)).into();
-
-                self.A = 0;
-                self.X = 0;
-                self.Y = 0;
-
-                // * => Set by software?
-                self.C = false; // *
-                self.Z = false; // *
-                self.I = true;
-                self.D = false;
-                self.B = true;
-                self.V = false; // *
-                self.N = false; // *
-
-                self.st = State::None;
-                self.op = Op::None;
+        self.st = match &self.st {
+            None => {
+                let pc = self.PC;
+                let (_, op_code) = self.fetch()?;
+                let (op, cycles) = self.parse(op_code)?;
+                dbg!(format!("{:#01x} {:?}", pc, op));
+                Some(State::CycleBurn(op, 1, cycles))
             }
-            (State::Interupt(Interupt::Irqb), _) => todo!(),
-            (State::Interupt(Interupt::Nmib), _) => todo!(),
+            Some(state) => match state {
+                State::CycleBurn(op, curr, total) => {
+                    let op = op.clone();
+                    let curr = curr + 1;
+                    if curr == *total {
+                        self.execute(op)?; // TODO: Print nice debug message with PC
+                        None
+                    } else {
+                        Some(State::CycleBurn(op, curr, *total))
+                    }
+                }
+                State::Interupt(Interupt::Irqb) => todo!(),
+                State::Interupt(Interupt::Nmib) => todo!(),
+                State::Reset => {
+                    self.SP = SP_ADDR;
 
-            // Handle opcodes
-            (_, _) => {
-                self.op = self.handle(self.op.clone())?;
-            }
-        }
+                    self.PC = dbg!(self.read_word(RESB.0)?);
+
+                    self.A = 0;
+                    self.X = 0;
+                    self.Y = 0;
+
+                    // * => Set by software?
+                    self.C = false; // *
+                    self.Z = false; // *
+                    self.I = true;
+                    self.D = false;
+                    self.B = true;
+                    self.V = false; // *
+                    self.N = false; // *
+
+                    None
+                }
+            },
+        };
         Ok(())
     }
 }

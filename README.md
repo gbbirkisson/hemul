@@ -21,7 +21,7 @@ You will need these binaries in your path to do testing:
 ## Resources
 
 - https://www.youtube.com/watch?v=qJgsuQoy9bc&t=1042s
-- https://web.archive.org/web/20210912192127/http://www.obelisk.me.uk/6502/
+- https://www.nesdev.org/obelisk-6502-guide/
 - https://www.youtube.com/watch?v=LnzuMJLZRdU&list=PLowKtXNTBypFbtuVMUVXNR0z1mu7dp7eH
 
 ## Running the VM
