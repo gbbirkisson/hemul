@@ -22,22 +22,35 @@ pub(crate) const IRQB: (Word, Word) = (0xFFFE, 0xFFFF);
 pub struct Cpu<T: Addressable> {
     addr: T,
 
-    PC: Word, // Program Counter
-    SP: Byte, // Stack Pointer
+    /// Program Counter
+    PC: Word,
+    /// Stack Pointer
+    SP: Byte,
 
-    A: Byte, // Accumulator
-    X: Byte, // Index Register X
-    Y: Byte, // Index Register Y
+    /// Accumulator
+    A: Byte,
+    /// Index Register X
+    X: Byte,
+    /// Index Register Y
+    Y: Byte,
 
-    C: PFlag, // Carry Flag
-    Z: PFlag, // Zero Flag
-    I: PFlag, // Interupt Disable
-    D: PFlag, // Decimal Mode
-    B: PFlag, // Break Command
-    V: PFlag, // Overflow Flag
-    N: PFlag, // Negative Flag
+    /// Carry Flag
+    C: PFlag,
+    /// Zero Flag
+    Z: PFlag,
+    /// Interupt Disable
+    I: PFlag,
+    /// Decimal Mode
+    D: PFlag,
+    /// Break Command
+    B: PFlag,
+    /// Overflow Flag
+    V: PFlag,
+    /// Negative Flag
+    N: PFlag,
 
-    st: Option<State>, // Other state
+    /// Processor state
+    st: Option<State>,
 }
 
 #[derive(Debug)]
@@ -45,6 +58,7 @@ pub enum Error {
     BadOpCode(Byte),
     OutOfBounds(Word),
     StackOverflow,
+    Other(String),
 }
 
 impl From<Error> for String {
@@ -53,6 +67,7 @@ impl From<Error> for String {
             Error::BadOpCode(code) => format!("BadOpCode: {code:#04x}"),
             Error::OutOfBounds(addr) => format!("OutOfBounds: {addr:#06x}"),
             Error::StackOverflow => "StackOverflow".to_string(),
+            Error::Other(msg) => format!("Other: {msg}"),
         }
     }
 }

@@ -1,6 +1,6 @@
 use crate::cpu::{address::Address, Addressable, Cpu, Error};
 
-use super::instructions::Op;
+use super::instructions::{AddressMode, Op};
 
 macro_rules! flags_zn {
     ($self:ident, $r:expr) => {
@@ -119,18 +119,138 @@ where
                 flags_zn!(self, data);
                 self.write(addr, data)?;
             }
-
+            Op::Inx => {
+                self.X += 1;
+                flags_zn!(self, self.X);
+            }
+            Op::Iny => {
+                self.X += 1;
+                flags_zn!(self, self.Y);
+            }
+            Op::Dec(mode) => {
+                let (addr, mut data) = self.fetch_mode(&mode)?;
+                data -= 1;
+                flags_zn!(self, data);
+                self.write(addr, data)?;
+            }
+            Op::Dex => {
+                self.X -= 1;
+                flags_zn!(self, self.X);
+            }
+            Op::Dey => {
+                self.Y -= 1;
+                flags_zn!(self, self.Y);
+            }
+            Op::Asl(_mode) => {
+                todo!()
+            }
+            Op::Lsr(_mode) => {
+                todo!()
+            }
+            Op::Rol(_mode) => {
+                todo!()
+            }
+            Op::Ror(_mode) => {
+                todo!()
+            }
+            Op::Jmp(AddressMode::Absolute) => {
+                self.PC = self.fetch_word()?;
+            }
+            Op::Jmp(AddressMode::Indirect) => {
+                let addr = self.fetch_word()?;
+                self.PC = self.read_word(addr)?;
+            }
             Op::Jsr => {
                 let Address::Full(addr, page) = Address::from(self.PC - 1) else {
-                    panic!()
+                    return Err(Error::Other(
+                        "Could not construct address from PC".to_string(),
+                    ));
                 };
                 self.stack_push(page)?;
                 self.stack_push(addr)?;
                 self.PC = self.fetch_word()?;
             }
-
+            Op::Rts => {
+                let addr = self.stack_pop()?;
+                let page = self.stack_pop()?;
+                self.PC = Address::Full(addr, page).into();
+            }
+            Op::Bcc => {
+                let addr = self.fetch_word()?;
+                if !self.C {
+                    self.PC = addr;
+                }
+            }
+            Op::Bcs => {
+                let addr = self.fetch_word()?;
+                if self.C {
+                    self.PC = addr;
+                }
+            }
+            Op::Beq => {
+                let addr = self.fetch_word()?;
+                if self.Z {
+                    self.PC = addr;
+                }
+            }
+            Op::Bmi => {
+                let addr = self.fetch_word()?;
+                if self.N {
+                    self.PC = addr;
+                }
+            }
+            Op::Bne => {
+                let addr = self.fetch_word()?;
+                if !self.Z {
+                    self.PC = addr;
+                }
+            }
+            Op::Bpl => {
+                let addr = self.fetch_word()?;
+                if !self.N {
+                    self.PC = addr;
+                }
+            }
+            Op::Bvc => {
+                let addr = self.fetch_word()?;
+                if !self.V {
+                    self.PC = addr;
+                }
+            }
+            Op::Bvs => {
+                let addr = self.fetch_word()?;
+                if self.V {
+                    self.PC = addr;
+                }
+            }
+            Op::Clc => {
+                self.C = false;
+            }
+            Op::Cld => {
+                self.D = false;
+            }
+            Op::Cli => {
+                self.I = false;
+            }
+            Op::Clv => {
+                self.V = false;
+            }
+            Op::Sec => {
+                self.C = true;
+            }
+            Op::Sed => {
+                self.D = true;
+            }
+            Op::Sei => {
+                self.I = true;
+            }
+            Op::Brk => {
+                todo!()
+            }
             Op::Nop => {}
-
+            Op::Rti => {
+                todo!()
+            }
             invalid => todo!("{:?}", invalid),
         }
         Ok(())

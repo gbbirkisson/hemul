@@ -306,8 +306,7 @@ pub enum Op {
     // execution. The JSR instruction pushes the old PC onto the stack before changing it to the
     // new location allowing a subsequent RTS to return execution to the instruction after the
     // call.
-    //
-    // Sets the program counter to the address specified by the operand.
+    /// Sets the program counter to the address specified by the operand.
     Jmp(AddressMode),
 
     /// JSR - Jump to Subroutine
