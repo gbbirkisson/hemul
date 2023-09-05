@@ -1,4 +1,7 @@
-use crate::cpu::{address::Address, Addressable, Cpu, Error};
+use crate::{
+    cpu::{address::Address, Addressable, Cpu, Error},
+    Byte,
+};
 
 use super::instructions::{AddressMode, Op};
 
@@ -21,20 +24,18 @@ where
 {
     #[allow(clippy::too_many_lines)]
     fn execute(&mut self, op: Op) -> Result<(), Error> {
+        #[allow(clippy::match_wildcard_for_single_variants)]
         match op {
             Op::Lda(mode) => {
-                let (_, data) = self.fetch_mode(&mode)?;
-                self.A = data;
+                self.A = self.fetch_mode(&mode)?;
                 flags_zn!(self, self.A);
             }
             Op::Ldx(mode) => {
-                let (_, data) = self.fetch_mode(&mode)?;
-                self.X = data;
+                self.X = self.fetch_mode(&mode)?;
                 flags_zn!(self, self.X);
             }
             Op::Ldy(mode) => {
-                let (_, data) = self.fetch_mode(&mode)?;
-                self.Y = data;
+                self.Y = self.fetch_mode(&mode)?;
                 flags_zn!(self, self.Y);
             }
             Op::Sta(mode) => {
@@ -83,20 +84,26 @@ where
                 let status = self.stack_pop()?;
                 self.status_set(status);
             }
-            Op::And(_mode) => {
-                todo!()
+            Op::And(mode) => {
+                self.A &= self.fetch_mode(&mode)?;
+                flags_zn!(self, self.A);
             }
-            Op::Eor(_mode) => {
-                todo!()
+            Op::Eor(mode) => {
+                self.A ^= self.fetch_mode(&mode)?;
+                flags_zn!(self, self.A);
             }
-            Op::Ora(_mode) => {
-                todo!()
+            Op::Ora(mode) => {
+                self.A |= self.fetch_mode(&mode)?;
+                flags_zn!(self, self.A);
             }
-            Op::Bit(_mode) => {
-                todo!()
+            Op::Bit(mode) => {
+                let data = self.fetch_mode(&mode)?;
+                self.Z = (data & self.A) == 0;
+                self.V = (data & 0b0010_0000) != 0;
+                self.N = (data & 0b0100_0000) != 0;
             }
             Op::Adc(mode) => {
-                let (_, data) = self.fetch_mode(&mode)?;
+                let data = self.fetch_mode(&mode)?;
                 self.A += data;
                 flags_zn!(self, self.A);
                 // TODO SIDE EFFECTS
@@ -114,10 +121,8 @@ where
                 todo!()
             }
             Op::Inc(mode) => {
-                let (addr, mut data) = self.fetch_mode(&mode)?;
-                data += 1;
+                let data = self.edit_mode(&mode, |data: Byte| data + 1)?;
                 flags_zn!(self, data);
-                self.write(addr, data)?;
             }
             Op::Inx => {
                 self.X += 1;
@@ -128,10 +133,8 @@ where
                 flags_zn!(self, self.Y);
             }
             Op::Dec(mode) => {
-                let (addr, mut data) = self.fetch_mode(&mode)?;
-                data -= 1;
+                let data = self.edit_mode(&mode, |data: Byte| data - 1)?;
                 flags_zn!(self, data);
-                self.write(addr, data)?;
             }
             Op::Dex => {
                 self.X -= 1;

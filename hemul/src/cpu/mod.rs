@@ -121,10 +121,10 @@ where
     }
 
     /// Read byte from address
-    fn read(&self, addr: impl Into<Word>) -> Result<(Word, Byte), Error> {
+    fn read(&self, addr: impl Into<Word>) -> Result<Byte, Error> {
         let addr = addr.into();
         if self.addr.inside_bounds(addr) {
-            Ok((addr, self.addr[addr]))
+            Ok(self.addr[addr])
         } else {
             Err(Error::OutOfBounds(addr))
         }
@@ -134,16 +134,16 @@ where
     fn read_word(&self, addr: impl Into<Word>) -> Result<Word, Error> {
         let a1 = addr.into();
         let a2 = a1 + 1;
-        let (_, addr) = self.read(a1)?;
-        let (_, page) = self.read(a2)?;
+        let addr = self.read(a1)?;
+        let page = self.read(a2)?;
         Ok(Address::Full(addr, page).into())
     }
 
     /// Fetch byte from memory that the PC points to and increment the PC
-    fn fetch(&mut self) -> Result<(Word, Byte), Error> {
-        let (addr, data) = self.read(self.PC)?;
+    fn fetch(&mut self) -> Result<Byte, Error> {
+        let data = self.read(self.PC)?;
         self.PC += 1;
-        Ok((addr, data))
+        Ok(data)
     }
 
     /// Fetch word from memory that the PC points to and increment the PC twice
@@ -154,7 +154,7 @@ where
     }
 
     /// Fetch byte from memory using provided address mode
-    fn fetch_mode(&mut self, mode: &AddressMode) -> Result<(Word, Byte), Error> {
+    fn fetch_mode(&mut self, mode: &AddressMode) -> Result<Byte, Error> {
         Ok(match mode {
             AddressMode::Accumulator => todo!(),
             AddressMode::Immediate => self.fetch()?,
@@ -205,6 +205,23 @@ where
         Ok(())
     }
 
+    fn edit_mode(&mut self, mode: &AddressMode, f: impl Fn(Byte) -> Byte) -> Result<Byte, Error> {
+        Ok(match mode {
+            AddressMode::ZeroPage => todo!(),
+            AddressMode::ZeroPageX => todo!(),
+            AddressMode::Absolute => {
+                let data = self.fetch()?;
+                let value = f(data);
+                self.write(data, value)?;
+                value
+            }
+            AddressMode::AbsoluteX => todo!(),
+            _ => {
+                return Err(Error::Other("Mode not supported".to_string()));
+            }
+        })
+    }
+
     /// Push byte onto the stack
     fn stack_push(&mut self, byte: impl Into<Byte>) -> Result<(), Error> {
         if self.SP == 0 {
@@ -221,7 +238,7 @@ where
         if self.SP == SP_ADDR {
             Err(Error::StackOverflow)
         } else {
-            let (_, data) = self.read(Address::from((self.SP, SP_PAGE)))?;
+            let data = self.read(Address::from((self.SP, SP_PAGE)))?;
             self.SP += 1;
             Ok(data)
         }
@@ -290,7 +307,7 @@ where
         self.st = match &self.st {
             None => {
                 let pc = self.PC;
-                let (_, op_code) = self.fetch()?;
+                let op_code = self.fetch()?;
                 let (op, cycles) = self.parse(op_code)?;
                 dbg!(format!("{:#01x} {:?}", pc, op));
                 Some(State::CycleBurn(op, 1, cycles))
