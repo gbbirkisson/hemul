@@ -6,11 +6,6 @@ extern crate hemul;
 mod utils;
 
 proptest! {
-    // #![proptest_config(ProptestConfig {
-    //     timeout: 5000,
-    //     .. ProptestConfig::default()
-    // })]
-
     #[test]
     fn eater_hello_world(_ in 0..1) {
         // Taken from https://eater.net/6502

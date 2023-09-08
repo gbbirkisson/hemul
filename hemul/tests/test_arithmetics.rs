@@ -6,10 +6,6 @@ extern crate hemul;
 mod utils;
 
 proptest! {
-    // #![proptest_config(ProptestConfig {
-    //     timeout: 1000,
-    //     .. ProptestConfig::default()
-    // })]
 
     #[test]
     fn test_add_example(_ in 0..1) {

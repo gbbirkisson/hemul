@@ -292,11 +292,16 @@ where
     }
 
     pub fn tick_until_nop(&mut self) -> Result<(), TickError> {
+        let mut count = 1;
         loop {
             if matches!(&self.st, Some(State::CycleBurn(Op::Nop, _, _))) {
                 return self.tick();
             }
             self.tick()?;
+            count += 1;
+            if count > 2000 {
+                return Err("Endless Loop".to_string());
+            }
         }
     }
 
