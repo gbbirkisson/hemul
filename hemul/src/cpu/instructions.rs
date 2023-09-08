@@ -1,7 +1,9 @@
 use crate::{
     cpu::{Addressable, Cpu, Error},
-    Byte,
+    Byte, Word,
 };
+
+use super::IRQB;
 
 pub trait OpParser {
     /// Parses a byte into an tuple that represents the `OpCode` and number of cycles that
@@ -17,7 +19,7 @@ pub enum Op {
     // operations set the negative (N) and zero (Z) flags depending on the value of transferred.
     // Store operations do not affect the flag settings.
     /// LDA - Load Accumulator
-    /// ```
+    /// ```text
     /// A,Z,N = M
     /// ```
     /// Loads a byte of memory into the accumulator setting the zero and negative flags as
@@ -25,7 +27,7 @@ pub enum Op {
     Lda(AddressMode),
 
     /// LDX - Load X Register
-    /// ```
+    /// ```text
     /// X,Z,N = M
     /// ```
     /// Loads a byte of memory into the X register setting the zero and negative flags as
@@ -33,7 +35,7 @@ pub enum Op {
     Ldx(AddressMode),
 
     /// LDY - Load Y Register
-    /// ```
+    /// ```text
     /// Y,Z,N = M
     /// ```
     /// Loads a byte of memory into the Y register setting the zero and negative flags as
@@ -41,21 +43,21 @@ pub enum Op {
     Ldy(AddressMode),
 
     /// STA - Store Accumulator
-    /// ```
+    /// ```text
     /// M = A
     /// ```
     /// Stores the contents of the accumulator into memory.
     Sta(AddressMode),
 
     /// STX - Store X Register
-    /// ```
+    /// ```text
     /// M = X
     /// ```
     /// Stores the contents of the X register into memory.
     Stx(AddressMode),
 
     /// STY - Store Y Register
-    /// ```
+    /// ```text
     /// M = Y
     /// ```
     /// Stores the contents of the Y register into memory.
@@ -65,7 +67,7 @@ pub enum Op {
     // The contents of the X and Y registers can be moved to or from the accumulator, setting the
     // negative (N) and zero (Z) flags as appropriate.
     /// TAX - Transfer Accumulator to X
-    /// ```
+    /// ```text
     /// X = A
     /// ```
     /// Copies the current contents of the accumulator into the X register and sets the zero and
@@ -73,7 +75,7 @@ pub enum Op {
     Tax,
 
     /// TAY - Transfer Accumulator to Y
-    /// ```
+    /// ```text
     /// Y = A
     /// ```
     /// Copies the current contents of the accumulator into the Y register and sets the zero and
@@ -81,7 +83,7 @@ pub enum Op {
     Tay,
 
     /// TXA - Transfer X to Accumulator
-    /// ```
+    /// ```text
     /// A = X
     /// ```
     /// Copies the current contents of the X register into the accumulator and sets the zero and
@@ -89,7 +91,7 @@ pub enum Op {
     Txa,
 
     /// TYA - Transfer Y to Accumulator
-    /// ```
+    /// ```text
     /// A = X
     /// ```
     /// Copies the current contents of the Y register into the accumulator and sets the zero and
@@ -105,7 +107,7 @@ pub enum Op {
     // value to or from the X register. Its value is automatically modified by push/pull
     // instructions, subroutine calls and returns, interrupts and returns from interrupts.
     /// TSX - Transfer Stack Pointer to X
-    /// ```
+    /// ```text
     /// X = S
     /// ```
     /// Copies the current contents of the stack register into the X register and sets the zero and
@@ -113,7 +115,7 @@ pub enum Op {
     Tsx,
 
     /// TXS - Transfer X to Stack Pointer
-    /// ```
+    /// ```text
     /// S = X
     /// ```
     /// Copies the current contents of the X register into the stack register.
@@ -142,7 +144,7 @@ pub enum Op {
     // and another value held in memory. The BIT instruction performs a logical AND to test the
     // presence of bits in the memory value to set the flags but does not keep the result.
     /// AND - Logical AND
-    /// ```
+    /// ```text
     /// A,Z,N = A&M
     /// ```
     /// A logical AND is performed, bit by bit, on the accumulator contents using the contents of a
@@ -150,7 +152,7 @@ pub enum Op {
     And(AddressMode),
 
     /// EOR - Exclusive OR
-    /// ```
+    /// ```text
     /// A,Z,N = A^M
     /// ```
     /// An exclusive OR is performed, bit by bit, on the accumulator contents using the contents of
@@ -158,7 +160,7 @@ pub enum Op {
     Eor(AddressMode),
 
     /// ORA - Logical Inclusive OR
-    /// ```
+    /// ```text
     /// A,Z,N = A|M
     /// ```
     /// An inclusive OR is performed, bit by bit, on the accumulator contents using the contents of
@@ -166,7 +168,7 @@ pub enum Op {
     Ora(AddressMode),
 
     /// BIT - Bit Test
-    /// ```
+    /// ```text
     /// A & M, N = M7, V = M6
     /// ```
     /// This instructions is used to test if one or more bits are set in a target memory location.
@@ -180,7 +182,7 @@ pub enum Op {
     // accumulator. The compare operations allow the comparison of the accumulator and X or Y with
     // memory values.
     /// ADC - Add with Carry
-    /// ```
+    /// ```text
     /// A,Z,C,N = A+M+C
     /// ```
     /// This instruction adds the contents of a memory location to the accumulator together with
@@ -189,7 +191,7 @@ pub enum Op {
     Adc(AddressMode),
 
     /// SBC - Subtract with Carry
-    /// ```
+    /// ```text
     /// A,Z,C,N = A-M-(1-C)
     /// ```
     /// This instruction subtracts the contents of a memory location to the accumulator together
@@ -198,7 +200,7 @@ pub enum Op {
     Sbc(AddressMode),
 
     /// CMP - Compare
-    /// ```
+    /// ```text
     /// Z,C,N = A-M
     /// ```
     /// This instruction compares the contents of the accumulator with another memory held value
@@ -206,7 +208,7 @@ pub enum Op {
     Cmp(AddressMode),
 
     /// CPX - Compare X Register
-    /// ```
+    /// ```text
     /// Z,C,N = X-M
     /// ```
     /// This instruction compares the contents of the X register with another memory held value and
@@ -214,7 +216,7 @@ pub enum Op {
     Cpx(AddressMode),
 
     /// CPY - Compare Y Register
-    /// ```
+    /// ```text
     /// Z,C,N = Y-M
     /// ```
     /// This instruction compares the contents of the Y register with another memory held value and
@@ -225,7 +227,7 @@ pub enum Op {
     // Increment or decrement a memory location or one of the X or Y registers by one setting the
     // negative (N) and zero (Z) flags as appropriate,
     /// INC - Increment Memory
-    /// ```
+    /// ```text
     /// M,Z,N = M+1
     /// ```
     /// Adds one to the value held at a specified memory location setting the zero and negative
@@ -233,21 +235,21 @@ pub enum Op {
     Inc(AddressMode),
 
     /// INX - Increment X Register
-    /// ```
+    /// ```text
     /// X,Z,N = X+1
     /// ```
     /// Adds one to the X register setting the zero and negative flags as appropriate.
     Inx,
 
     /// INY - Increment Y Register
-    /// ```
+    /// ```text
     /// Y,Z,N = Y+1
     /// ```
     /// Adds one to the Y register setting the zero and negative flags as appropriate.
     Iny,
 
     /// DEC - Decrement Memory
-    /// ```
+    /// ```text
     /// M,Z,N = M-1
     /// ```
     /// Subtracts one from the value held at a specified memory location setting the zero and
@@ -255,14 +257,14 @@ pub enum Op {
     Dec(AddressMode),
 
     /// DEX - Decrement X Register
-    /// ```
+    /// ```text
     /// X,Z,N = X-1
     /// ```
     /// Subtracts one from the X register setting the zero and negative flags as appropriate.
     Dex,
 
     /// DEY - Decrement Y Register
-    /// ```
+    /// ```text
     /// Y,Z,N = Y-1
     /// ```
     /// Subtracts one from the Y register setting the zero and negative flags as appropriate.
@@ -275,7 +277,7 @@ pub enum Op {
     // arithmetic and logical shifts shift in an appropriate 0 or 1 bit as appropriate but catch
     // the overflow bit in the carry flag (C).
     /// ASL - Arithmetic Shift Left
-    /// ```
+    /// ```text
     /// A,Z,C,N = M*2 or M,Z,C,N = M*2
     /// ```
     /// This operation shifts all the bits of the accumulator or memory contents one bit left. Bit
@@ -284,7 +286,7 @@ pub enum Op {
     /// carry if the result will not fit in 8 bits.
     Asl(AddressMode),
     /// LSR - Logical Shift Right
-    /// ```
+    /// ```text
     /// A,C,Z,N = A/2 or M,C,Z,N = M/2
     /// ```
     /// Each of the bits in A or M is shift one place to the right. The bit that was in bit 0 is
@@ -368,41 +370,51 @@ pub enum Op {
     // Status Flag Changes
     // The following instructions change the values of specific status flags.
     /// CLC - Clear Carry Flag
-    /// ```
+    /// ```text
     /// C = 0
     /// ```
     /// Set the carry flag to zero.
     Clc,
 
     /// CLD - Clear Decimal Mode
-    /// ```
+    /// ```text
     /// D = 0
     /// ```
     /// Sets the decimal mode flag to zero.
     Cld,
 
     /// CLI - Clear Interrupt Disable
+    /// ```text
     /// I = 0
+    /// ```
     /// Clears the interrupt disable flag allowing normal interrupt requests to be serviced.
     Cli,
 
     /// CLV - Clear Overflow Flag
+    /// ```text
     /// V = 0
+    /// ```
     /// Clears the overflow flag.
     Clv,
 
     /// SEC - Set Carry Flag
+    /// ```text
     /// C = 1
+    /// ```
     /// Set the carry flag to one.
     Sec,
 
     /// SED - Set Decimal Flag
+    /// ```text
     /// D = 1
+    /// ```
     /// Set the decimal mode flag to one.
     Sed,
 
     /// SEI - Set Interrupt Disable
+    /// ```text
     /// I = 1
+    /// ```
     /// Set the interrupt disable flag to one.
     Sei,
 
@@ -412,7 +424,7 @@ pub enum Op {
     /// The BRK instruction forces the generation of an interrupt request. The program counter and
     /// processor status are pushed on the stack then the IRQ interrupt vector at $FFFE/F is loaded
     /// into the PC and the break flag in the status set to one.
-    Brk,
+    Brk(Word),
 
     /// NOP - No Operation
     /// The NOP instruction causes no changes to the processor other than the normal incrementing
@@ -764,7 +776,7 @@ where
             0xF8 => (Op::Sed, 2),
             0x78 => (Op::Sei, 2),
 
-            0x00 => (Op::Brk, 7),
+            0x00 => (Op::Brk(IRQB), 7),
             0xEA => (Op::Nop, 2),
             0x40 => (Op::Rti, 6),
 

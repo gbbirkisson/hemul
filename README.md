@@ -22,6 +22,8 @@ You will need these binaries in your path to do testing:
 
 - https://www.youtube.com/watch?v=qJgsuQoy9bc&t=1042s
 - https://www.nesdev.org/obelisk-6502-guide/
+- http://www.6502.org/tutorials/decimal_mode.html
+- https://wiki.cdot.senecacollege.ca/wiki/6502_Math
 - https://www.youtube.com/watch?v=LnzuMJLZRdU&list=PLowKtXNTBypFbtuVMUVXNR0z1mu7dp7eH
 
 ## Running the VM

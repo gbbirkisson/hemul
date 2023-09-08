@@ -1,4 +1,4 @@
-CLIPPY_ARGS=-W clippy::pedantic -W clippy::nursery -W clippy::unwrap_used -A clippy::missing-const-for-fn -A clippy::missing-errors-doc -A clippy::must-use-candidate -A clippy::new-without-default
+CLIPPY_ARGS=-W clippy::pedantic -W clippy::nursery -W clippy::unwrap_used -A clippy::missing-const-for-fn -A clippy::missing-errors-doc -A clippy::must-use-candidate -A clippy::new-without-default -A clippy::ignored-unit-patterns
 
 dev: test lint
 
@@ -15,14 +15,14 @@ lint-fmt:
 
 .PHONY: lint-clippy
 lint-clippy:
-	cargo clippy -- $(CLIPPY_ARGS)
+	cargo clippy -- --no-deps $(CLIPPY_ARGS)
 
 .PHONY: fix
 fix: fix-clippy fix-fmt
 
 .PHONY: fix-clippy
 fix-clippy:
-	cargo clippy --fix --allow-staged -- $(CLIPPY_ARGS)
+	cargo clippy --fix --allow-staged -- --no-deps $(CLIPPY_ARGS)
 
 .PHONY: fix-fmt
 fix-fmt:

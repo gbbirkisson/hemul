@@ -19,11 +19,10 @@ pub trait Tickable {
 }
 
 pub type Interupt = u8;
+pub type InteruptError = String;
 
 pub trait Interuptable {
-    type Error;
-
-    fn interupt(&mut self, tp: impl Into<Interupt>) -> Result<(), Self::Error>;
+    fn interupt(&mut self, tp: impl Into<Interupt>) -> Result<(), InteruptError>;
 }
 
 pub trait Snapshottable {

@@ -6,6 +6,7 @@ use instructions::{Op, OpParser};
 pub(crate) mod address;
 mod executor;
 mod instructions;
+pub mod interupts;
 pub mod snapshot;
 
 pub(crate) type PFlag = bool;
@@ -13,10 +14,10 @@ pub(crate) type PFlag = bool;
 pub(crate) const SP_PAGE: Byte = 0x01;
 pub(crate) const SP_ADDR: Byte = 0xFF;
 #[allow(dead_code)]
-pub(crate) const NMIB: (Word, Word) = (0xFFFA, 0xFFFB);
-pub(crate) const RESB: (Word, Word) = (0xFFFC, 0xFFFD);
+pub(crate) const NMIB: Word = 0xFFFA; // + 0xFFFB
+pub(crate) const RESB: Word = 0xFFFC; // + 0xFFFD
 #[allow(dead_code)]
-pub(crate) const IRQB: (Word, Word) = (0xFFFE, 0xFFFF);
+pub(crate) const IRQB: Word = 0xFFFE; // + 0xFFFF
 
 #[allow(non_snake_case, dead_code)]
 pub struct Cpu<T: Addressable> {
@@ -51,6 +52,7 @@ pub struct Cpu<T: Addressable> {
 
     /// Processor state
     st: Option<State>,
+    interupt_addr: Option<Word>,
 }
 
 #[derive(Debug)]
@@ -72,19 +74,10 @@ impl From<Error> for String {
     }
 }
 
-#[allow(dead_code)]
-#[derive(Debug)]
-enum Interupt {
-    Irqb,
-    Nmib,
-}
-
 #[derive(Debug)]
 enum State {
     CycleBurn(Op, u8, u8),
     Reset,
-    #[allow(dead_code)]
-    Interupt(Interupt),
 }
 
 #[allow(dead_code)]
@@ -112,6 +105,7 @@ where
             N: false,
 
             st: Some(State::Reset),
+            interupt_addr: None,
         }
     }
 
@@ -156,7 +150,9 @@ where
     /// Fetch byte from memory using provided address mode
     fn fetch_mode(&mut self, mode: &AddressMode) -> Result<Byte, Error> {
         Ok(match mode {
-            AddressMode::Accumulator => todo!(),
+            AddressMode::Accumulator => {
+                return Err(Error::Other("Mode not supported".to_string()));
+            }
             AddressMode::Immediate => self.fetch()?,
             AddressMode::ZeroPage => todo!(),
             AddressMode::ZeroPageX => todo!(),
@@ -165,8 +161,14 @@ where
                 let addr = self.fetch_word()?;
                 self.read(addr)?
             }
-            AddressMode::AbsoluteX => todo!(),
-            AddressMode::AbsoluteY => todo!(),
+            AddressMode::AbsoluteX => {
+                let addr = self.fetch_word()? + u16::from(self.X);
+                self.read(addr)?
+            }
+            AddressMode::AbsoluteY => {
+                let addr = self.fetch_word()? + u16::from(self.Y);
+                self.read(addr)?
+            }
             AddressMode::Indirect => todo!(),
             AddressMode::IndexedIndirect => todo!(),
             AddressMode::IndirectIndexed => todo!(),
@@ -187,17 +189,25 @@ where
     /// Write byte into memory using provided address mode
     fn write_mode(&mut self, mode: &AddressMode, value: impl Into<Byte>) -> Result<(), Error> {
         match mode {
-            AddressMode::Accumulator => todo!(),
+            AddressMode::Accumulator => {
+                return Err(Error::Other("Mode not supported".to_string()));
+            }
             AddressMode::Immediate => todo!(),
             AddressMode::ZeroPage => todo!(),
             AddressMode::ZeroPageX => todo!(),
             AddressMode::ZeroPageY => todo!(),
             AddressMode::Absolute => {
-                let data = self.fetch_word()?;
-                self.write(data, value)?;
+                let addr = self.fetch_word()?;
+                self.write(addr, value)?;
             }
-            AddressMode::AbsoluteX => todo!(),
-            AddressMode::AbsoluteY => todo!(),
+            AddressMode::AbsoluteX => {
+                let addr = self.fetch_word()? + u16::from(self.X);
+                self.write(addr, value)?;
+            }
+            AddressMode::AbsoluteY => {
+                let addr = self.fetch_word()? + u16::from(self.Y);
+                self.write(addr, value)?;
+            }
             AddressMode::Indirect => todo!(),
             AddressMode::IndexedIndirect => todo!(),
             AddressMode::IndirectIndexed => todo!(),
@@ -210,12 +220,17 @@ where
             AddressMode::ZeroPage => todo!(),
             AddressMode::ZeroPageX => todo!(),
             AddressMode::Absolute => {
-                let data = self.fetch()?;
-                let value = f(data);
-                self.write(data, value)?;
+                let addr = self.fetch_word()?;
+                let value = f(self.read(addr)?);
+                self.write(addr, value)?;
                 value
             }
-            AddressMode::AbsoluteX => todo!(),
+            AddressMode::AbsoluteX => {
+                let addr = self.fetch_word()? + u16::from(self.X);
+                let value = f(self.read(addr)?);
+                self.write(addr, value)?;
+                value
+            }
             _ => {
                 return Err(Error::Other("Mode not supported".to_string()));
             }
@@ -224,24 +239,18 @@ where
 
     /// Push byte onto the stack
     fn stack_push(&mut self, byte: impl Into<Byte>) -> Result<(), Error> {
-        if self.SP == 0 {
-            Err(Error::StackOverflow)
-        } else {
-            self.write(Address::from((self.SP, SP_PAGE)), byte.into())?;
-            self.SP -= 1;
-            Ok(())
-        }
+        let addr = Address::from((self.SP, SP_PAGE));
+        self.write(addr, byte.into())?;
+        self.SP = self.SP.wrapping_sub(1);
+        Ok(())
     }
 
     /// Pop byte from the stack
     fn stack_pop(&mut self) -> Result<Byte, Error> {
-        if self.SP == SP_ADDR {
-            Err(Error::StackOverflow)
-        } else {
-            let data = self.read(Address::from((self.SP, SP_PAGE)))?;
-            self.SP += 1;
-            Ok(data)
-        }
+        self.SP = self.SP.wrapping_add(1);
+        let addr = Address::from((self.SP, SP_PAGE));
+        let data = self.read(addr)?;
+        Ok(data)
     }
 
     /// Get status register
@@ -306,11 +315,18 @@ where
     fn tick(&mut self) -> Result<(), TickError> {
         self.st = match &self.st {
             None => {
-                let pc = self.PC;
-                let op_code = self.fetch()?;
-                let (op, cycles) = self.parse(op_code)?;
-                dbg!(format!("{:#01x} {:?}", pc, op));
-                Some(State::CycleBurn(op, 1, cycles))
+                if let Some(addr) = self.interupt_addr {
+                    if !(addr == IRQB && self.I) {
+                        self.execute(Op::Brk(addr))?;
+                    }
+                    None
+                } else {
+                    let pc = self.PC;
+                    let op_code = self.fetch()?;
+                    let (op, cycles) = self.parse(op_code)?;
+                    dbg!(format!("{:#06x} {:#02x} {:?}", pc, op_code, op));
+                    Some(State::CycleBurn(op, 1, cycles))
+                }
             }
             Some(state) => match state {
                 State::CycleBurn(op, curr, total) => {
@@ -323,12 +339,10 @@ where
                         Some(State::CycleBurn(op, curr, *total))
                     }
                 }
-                State::Interupt(Interupt::Irqb) => todo!(),
-                State::Interupt(Interupt::Nmib) => todo!(),
                 State::Reset => {
                     self.SP = SP_ADDR;
 
-                    self.PC = dbg!(self.read_word(RESB.0)?);
+                    self.PC = self.read_word(RESB)?;
 
                     self.A = 0;
                     self.X = 0;
@@ -342,6 +356,8 @@ where
                     self.B = true;
                     self.V = false; // *
                     self.N = false; // *
+
+                    self.interupt_addr = None;
 
                     None
                 }

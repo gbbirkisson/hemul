@@ -66,6 +66,12 @@ impl From<File> for Memory {
     }
 }
 
+impl From<String> for Memory {
+    fn from(value: String) -> Self {
+        value.as_str().into()
+    }
+}
+
 impl From<&str> for Memory {
     fn from(value: &str) -> Self {
         // let child = Command::new("xa")

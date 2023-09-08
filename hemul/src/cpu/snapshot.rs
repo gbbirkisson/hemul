@@ -80,29 +80,26 @@ where
     type Error = String;
 
     fn snapshot(&self) -> Result<Self::Snapshot, Self::Error> {
-        match self.st {
-            None => Ok(Snapshot {
-                dump: self
-                    .addr
-                    .snapshot()
-                    .map_err(|_| "Failed to snap addresses")?,
+        Ok(Snapshot {
+            dump: self
+                .addr
+                .snapshot()
+                .map_err(|_| "Failed to snap addresses")?,
 
-                PC: self.PC,
-                SP: self.SP,
+            PC: self.PC,
+            SP: self.SP,
 
-                A: self.A,
-                X: self.X,
-                Y: self.Y,
+            A: self.A,
+            X: self.X,
+            Y: self.Y,
 
-                C: self.C,
-                Z: self.Z,
-                I: self.I,
-                D: self.D,
-                B: self.B,
-                V: self.V,
-                N: self.N,
-            }),
-            _ => Err("State not None".to_string()),
-        }
+            C: self.C,
+            Z: self.Z,
+            I: self.I,
+            D: self.D,
+            B: self.B,
+            V: self.V,
+            N: self.N,
+        })
     }
 }

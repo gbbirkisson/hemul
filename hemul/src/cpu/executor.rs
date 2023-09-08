@@ -8,7 +8,26 @@ use super::instructions::{AddressMode, Op};
 macro_rules! flags_zn {
     ($self:ident, $r:expr) => {
         $self.Z = $r == 0;
-        $self.N = ($r & 0b0100_0000) > 0;
+        $self.N = ($r & 0b1000_0000) > 0;
+    };
+}
+
+macro_rules! branch {
+    ($self:ident, $cond:expr) => {
+        let offset = $self.fetch()?;
+        if $cond {
+            $self.PC = u16::try_from(i32::from($self.PC) + i32::from(offset))
+                .map_err(|_| Error::Other("Failed to calculate offset".to_string()))?;
+        }
+    };
+}
+
+macro_rules! compare {
+    ($self:ident, $r:ident, $mode:ident) => {
+        let data = $self.fetch_mode(&$mode)?;
+        $self.C = $self.$r >= data;
+        $self.Z = $self.$r == data;
+        $self.N = (data & 0b1000_0000) > 0;
     };
 }
 
@@ -99,61 +118,89 @@ where
             Op::Bit(mode) => {
                 let data = self.fetch_mode(&mode)?;
                 self.Z = (data & self.A) == 0;
-                self.V = (data & 0b0010_0000) != 0;
-                self.N = (data & 0b0100_0000) != 0;
+                self.V = (data & 0b0100_0000) > 0;
+                self.N = (data & 0b1000_0000) > 0;
             }
             Op::Adc(mode) => {
+                // TODO
                 let data = self.fetch_mode(&mode)?;
-                self.A += data;
+                let (data, carry1) = if self.C {
+                    data.overflowing_add(1)
+                } else {
+                    (data, false)
+                };
+                let (sum, carry2) = self.A.overflowing_add(data);
+                self.A = sum;
+                self.C = carry1 || carry2;
                 flags_zn!(self, self.A);
-                // TODO SIDE EFFECTS
             }
             Op::Sbc(_mode) => {
+                // TODO
                 todo!()
             }
-            Op::Cmp(_mode) => {
-                todo!()
+            Op::Cmp(mode) => {
+                compare!(self, A, mode);
             }
-            Op::Cpx(_mode) => {
-                todo!()
+            Op::Cpx(mode) => {
+                compare!(self, X, mode);
             }
-            Op::Cpy(_mode) => {
-                todo!()
+            Op::Cpy(mode) => {
+                compare!(self, Y, mode);
             }
             Op::Inc(mode) => {
-                let data = self.edit_mode(&mode, |data: Byte| data + 1)?;
+                let data = self.edit_mode(&mode, |data: Byte| data.wrapping_add(1))?;
                 flags_zn!(self, data);
             }
             Op::Inx => {
-                self.X += 1;
+                self.X = self.X.wrapping_add(1);
                 flags_zn!(self, self.X);
             }
             Op::Iny => {
-                self.X += 1;
+                self.Y = self.Y.wrapping_add(1);
                 flags_zn!(self, self.Y);
             }
             Op::Dec(mode) => {
-                let data = self.edit_mode(&mode, |data: Byte| data - 1)?;
+                let data = self.edit_mode(&mode, |data: Byte| data.wrapping_sub(1))?;
                 flags_zn!(self, data);
             }
             Op::Dex => {
-                self.X -= 1;
+                self.X = self.X.wrapping_sub(1);
                 flags_zn!(self, self.X);
             }
             Op::Dey => {
-                self.Y -= 1;
+                self.Y = self.Y.wrapping_sub(1);
                 flags_zn!(self, self.Y);
             }
+            Op::Asl(AddressMode::Accumulator) => {
+                // TODO
+                todo!()
+            }
             Op::Asl(_mode) => {
+                // TODO
+                todo!()
+            }
+            Op::Lsr(AddressMode::Accumulator) => {
+                // TODO
                 todo!()
             }
             Op::Lsr(_mode) => {
+                // TODO
+                todo!()
+            }
+            Op::Rol(AddressMode::Accumulator) => {
+                // TODO
                 todo!()
             }
             Op::Rol(_mode) => {
+                // TODO
+                todo!()
+            }
+            Op::Ror(AddressMode::Accumulator) => {
+                // TODO
                 todo!()
             }
             Op::Ror(_mode) => {
+                // TODO
                 todo!()
             }
             Op::Jmp(AddressMode::Absolute) => {
@@ -164,6 +211,7 @@ where
                 self.PC = self.read_word(addr)?;
             }
             Op::Jsr => {
+                let new_pc = self.fetch_word()?;
                 let Address::Full(addr, page) = Address::from(self.PC - 1) else {
                     return Err(Error::Other(
                         "Could not construct address from PC".to_string(),
@@ -171,60 +219,37 @@ where
                 };
                 self.stack_push(page)?;
                 self.stack_push(addr)?;
-                self.PC = self.fetch_word()?;
+                self.PC = new_pc;
             }
             Op::Rts => {
                 let addr = self.stack_pop()?;
                 let page = self.stack_pop()?;
                 self.PC = Address::Full(addr, page).into();
+                self.PC += 1;
             }
             Op::Bcc => {
-                let addr = self.fetch_word()?;
-                if !self.C {
-                    self.PC = addr;
-                }
+                branch!(self, !self.C);
             }
             Op::Bcs => {
-                let addr = self.fetch_word()?;
-                if self.C {
-                    self.PC = addr;
-                }
+                branch!(self, self.C);
             }
             Op::Beq => {
-                let addr = self.fetch_word()?;
-                if self.Z {
-                    self.PC = addr;
-                }
+                branch!(self, self.Z);
             }
             Op::Bmi => {
-                let addr = self.fetch_word()?;
-                if self.N {
-                    self.PC = addr;
-                }
+                branch!(self, self.N);
             }
             Op::Bne => {
-                let addr = self.fetch_word()?;
-                if !self.Z {
-                    self.PC = addr;
-                }
+                branch!(self, !self.Z);
             }
             Op::Bpl => {
-                let addr = self.fetch_word()?;
-                if !self.N {
-                    self.PC = addr;
-                }
+                branch!(self, !self.N);
             }
             Op::Bvc => {
-                let addr = self.fetch_word()?;
-                if !self.V {
-                    self.PC = addr;
-                }
+                branch!(self, !self.V);
             }
             Op::Bvs => {
-                let addr = self.fetch_word()?;
-                if self.V {
-                    self.PC = addr;
-                }
+                branch!(self, self.V);
             }
             Op::Clc => {
                 self.C = false;
@@ -243,16 +268,27 @@ where
             }
             Op::Sed => {
                 self.D = true;
+                panic!("Decimal Mode not supported");
             }
             Op::Sei => {
                 self.I = true;
             }
-            Op::Brk => {
-                todo!()
+            Op::Brk(interupt_addr) => {
+                let Address::Full(addr, page) = Address::from(self.PC - 1) else {
+                    return Err(Error::Other(
+                        "Could not construct address from PC".to_string(),
+                    ));
+                };
+                self.stack_push(page)?;
+                self.stack_push(addr)?;
+                self.PC = self.read_word(interupt_addr)?;
             }
             Op::Nop => {}
             Op::Rti => {
-                todo!()
+                let addr = self.stack_pop()?;
+                let page = self.stack_pop()?;
+                self.PC = Address::Full(addr, page).into();
+                self.PC += 1;
             }
             invalid => todo!("{:?}", invalid),
         }
