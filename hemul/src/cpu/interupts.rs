@@ -9,10 +9,15 @@ where
     fn interupt(&mut self, tp: impl Into<crate::Interupt>) -> Result<(), InteruptError> {
         match tp.into() {
             0 => {
-                self.interupt_addr = Some(IRQB);
+                if !self.I {
+                    self.interupts.push_back(IRQB);
+                }
             }
             _ => {
-                self.interupt_addr = Some(NMIB);
+                // If non maskable interupt is not the first in queue, push it up front
+                if self.interupts.get(0) != Some(&NMIB) {
+                    self.interupts.push_front(NMIB);
+                }
             }
         }
         Ok(())

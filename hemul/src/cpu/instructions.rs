@@ -424,7 +424,8 @@ pub enum Op {
     /// The BRK instruction forces the generation of an interrupt request. The program counter and
     /// processor status are pushed on the stack then the IRQ interrupt vector at $FFFE/F is loaded
     /// into the PC and the break flag in the status set to one.
-    Brk(Word),
+    #[allow(dead_code)]
+    Brk,
 
     /// NOP - No Operation
     /// The NOP instruction causes no changes to the processor other than the normal incrementing
@@ -435,6 +436,9 @@ pub enum Op {
     /// The RTI instruction is used at the end of an interrupt processing routine. It pulls the
     /// processor flags from the stack followed by the program counter.
     Rti,
+
+    /// Internal instruction that triggers a interrupt
+    Interrupt(Word),
 }
 
 /// The 6502 processor provides several ways in which memory locations can be addressed. Some
@@ -776,7 +780,8 @@ where
             0xF8 => (Op::Sed, 2),
             0x78 => (Op::Sei, 2),
 
-            0x00 => (Op::Brk(IRQB), 7),
+            // 0x00 => (Op::Brk, 7),
+            0x00 => (Op::Interrupt(IRQB), 7),
             0xEA => (Op::Nop, 2),
             0x40 => (Op::Rti, 6),
 

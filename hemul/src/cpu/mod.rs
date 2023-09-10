@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use self::{address::Address, instructions::AddressMode};
 use crate::{Addressable, Byte, TickError, Tickable, Word};
 use executor::OpExecutor;
@@ -52,7 +54,9 @@ pub struct Cpu<T: Addressable> {
 
     /// Processor state
     st: Option<State>,
-    interupt_addr: Option<Word>,
+
+    /// Interupt queue
+    interupts: VecDeque<Word>,
 }
 
 #[derive(Debug)]
@@ -105,7 +109,7 @@ where
             N: false,
 
             st: Some(State::Reset),
-            interupt_addr: None,
+            interupts: VecDeque::new(),
         }
     }
 
@@ -320,11 +324,8 @@ where
     fn tick(&mut self) -> Result<(), TickError> {
         self.st = match &self.st {
             None => {
-                if let Some(addr) = self.interupt_addr {
-                    if !(addr == IRQB && self.I) {
-                        self.execute(Op::Brk(addr))?;
-                    }
-                    None
+                if let Some(addr) = self.interupts.pop_front() {
+                    Some(State::CycleBurn(Op::Interrupt(addr), 1, 7))
                 } else {
                     let pc = self.PC;
                     let op_code = self.fetch()?;
@@ -362,7 +363,7 @@ where
                     self.V = false; // *
                     self.N = false; // *
 
-                    self.interupt_addr = None;
+                    self.interupts = VecDeque::new();
 
                     None
                 }

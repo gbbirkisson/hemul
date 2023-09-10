@@ -6,6 +6,7 @@ extern crate hemul;
 mod utils;
 
 proptest! {
+
     #[test]
     fn eater_hello_world(_ in 0..1) {
         // Taken from https://eater.net/6502

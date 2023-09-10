@@ -3,7 +3,10 @@ use crate::{
     Byte,
 };
 
-use super::instructions::{AddressMode, Op};
+use super::{
+    instructions::{AddressMode, Op},
+    IRQB,
+};
 
 macro_rules! flags_zn {
     ($self:ident, $r:expr) => {
@@ -273,7 +276,27 @@ where
             Op::Sei => {
                 self.I = true;
             }
-            Op::Brk(interupt_addr) => {
+            Op::Brk => {
+                panic!("This should be handled by Op::Interrupt");
+            }
+            Op::Nop => {}
+            Op::Rti => {
+                self.I = false;
+
+                let status = self.stack_pop()?;
+                self.status_set(status);
+
+                let addr = self.stack_pop()?;
+                let page = self.stack_pop()?;
+                self.PC = Address::Full(addr, page).into();
+                self.PC += 1;
+            }
+            Op::Interrupt(int_addr) => {
+                // Interupts are disabled
+                if self.I && int_addr == IRQB {
+                    return Ok(());
+                }
+
                 let Address::Full(addr, page) = Address::from(self.PC - 1) else {
                     return Err(Error::Other(
                         "Could not construct address from PC".to_string(),
@@ -281,14 +304,11 @@ where
                 };
                 self.stack_push(page)?;
                 self.stack_push(addr)?;
-                self.PC = self.read_word(interupt_addr)?;
-            }
-            Op::Nop => {}
-            Op::Rti => {
-                let addr = self.stack_pop()?;
-                let page = self.stack_pop()?;
-                self.PC = Address::Full(addr, page).into();
-                self.PC += 1;
+                self.PC = self.read_word(int_addr)?;
+
+                self.stack_push(self.status_get())?;
+
+                self.I = true;
             }
             invalid => todo!("{:?}", invalid),
         }
