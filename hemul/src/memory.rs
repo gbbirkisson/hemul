@@ -72,6 +72,7 @@ impl From<String> for Memory {
     }
 }
 
+#[allow(clippy::fallible_impl_from)]
 impl From<&str> for Memory {
     fn from(value: &str) -> Self {
         // Fallback to bin in repo
@@ -82,7 +83,7 @@ impl From<&str> for Memory {
         {
             Ok(_) => "vasm6502_oldstyle",
             Err(e) => {
-                if let std::io::ErrorKind::NotFound = e.kind() {
+                if e.kind() == std::io::ErrorKind::NotFound {
                     "../bin/vasm6502_oldstyle"
                 } else {
                     panic!("Failed running vasm6502_oldstyle");

@@ -5,12 +5,11 @@ extern crate hemul;
 #[path = "utils.rs"]
 mod utils;
 
-proptest! {
-
-    #[test]
-    fn test_add_example(_ in 0..1) {
-        let snapshot = asm_test!(
-            r#"
+#[test]
+fn test_add_example() {
+    let snapshot = asm_test!(
+        r#"
+        ;;
 LOWBYTE  = $4000
 HIGHBYTE = $4001
     LDA #$F0      ; A=$F0
@@ -21,18 +20,20 @@ HIGHBYTE = $4001
     ADC #$01      ; Value is $30+$01+C = $32; therefore A=$32 and C=0
     STA HIGHBYTE
     NOP
-            "#
-        );
-        assert_eq!(snapshot.dump[0x04000], 0x10);
-        assert_eq!(snapshot.dump[0x04001], 0x32);
-        assert!(!snapshot.C);
-    }
+        "#
+    );
+    assert_eq!(snapshot.dump[0x04000], 0x10);
+    assert_eq!(snapshot.dump[0x04001], 0x32);
+    assert!(!snapshot.C);
+}
 
+proptest! {
     #[test]
     fn test_add_without_carry(a in 0..=255u8, b in 0..=255u8) {
         let snapshot = asm_test!(
             format!(
                 r#"
+                ;;
 RESULT  = $4000
     LDA     #%{:0>8b}
     ADC     #%{:0>8b}
@@ -50,6 +51,7 @@ RESULT  = $4000
         let snapshot = asm_test!(
             format!(
                 r#"
+                ;;
 RESULT  = $4000
     SEC
     LDA     #%{:0>8b}

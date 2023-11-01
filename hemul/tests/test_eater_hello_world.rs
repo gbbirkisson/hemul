@@ -1,17 +1,14 @@
-use proptest::prelude::*;
-
 extern crate hemul;
 
 #[path = "utils.rs"]
 mod utils;
 
-proptest! {
-
-    #[test]
-    fn eater_hello_world(_ in 0..1) {
-        // Taken from https://eater.net/6502
-        let snapshot = asm_test!(
-            r#"
+#[test]
+fn eater_hello_world() {
+    // Taken from https://eater.net/6502
+    let snapshot = asm_test!(
+        r#"
+        ;;
 PORTB = $6000
 PORTA = $6001
 DDRB = $6002
@@ -107,8 +104,7 @@ print_char:
   .org $fffc
   .word reset
   .word $0000
-            "#
-        );
-        assert_eq!(snapshot.dump[0x6001], 0x20);
-    }
+        "#
+    );
+    assert_eq!(snapshot.dump[0x6001], 0x20);
 }

@@ -15,7 +15,7 @@ Emulation of the 6502 micro processor
 
 You will need these binaries in your path to do testing:
 
-- [xa](https://linux.die.net/man/1/xa)
+- [vasm6502_oldstyle](http://www.compilers.de/vasm.html)
 - [hexdump](https://man7.org/linux/man-pages/man1/hexdump.1.html)
 
 ## Resources
@@ -60,15 +60,7 @@ EOF
     - [x] A bus
     - [x] Clock crystal
     - [ ] A serial port with socat: [ref](https://www.baeldung.com/linux/make-virtual-serial-port)
+    - [ ] A tui with [ratatui](https://github.com/ratatui-org/ratatui)
 
 * Other
-    - [ ] Setup syntax highlighting for ASM: [ref](https://www.youtube.com/watch?v=v3o9YaHBM4Q&t)
-
-
-cat << EOF | cargo run -- -b - -a
-    ; 1 + 2
-    LDA     #01
-    ADC     #02
-    STA     $0402
-    NOP
-EOF
+    - [x] Setup syntax highlighting for ASM: [ref](https://www.youtube.com/watch?v=v3o9YaHBM4Q&t)
