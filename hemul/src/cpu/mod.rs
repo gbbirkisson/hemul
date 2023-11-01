@@ -1,14 +1,12 @@
-use std::collections::VecDeque;
-
-use self::{address::Address, instructions::AddressMode};
-use crate::{Addressable, Byte, TickError, Tickable, Word};
-use executor::OpExecutor;
-use instructions::{Op, OpParser};
+use self::{
+    address::Address,
+    instructions::{AddressMode, Cycles, OpCode},
+};
+use crate::{Addressable, Byte, InteruptError, Interuptable, Resetable, TickError, Tickable, Word};
+use instructions::Op;
 
 pub(crate) mod address;
-mod executor;
 mod instructions;
-pub mod interupts;
 pub mod snapshot;
 
 pub(crate) type PFlag = bool;
@@ -52,11 +50,8 @@ pub struct Cpu<T: Addressable> {
     /// Negative Flag
     N: PFlag,
 
-    /// Processor state
-    st: Option<State>,
-
-    /// Interupt queue
-    interupts: VecDeque<Word>,
+    /// How many ticks to ignore until we should execute next instruction
+    noop: u8,
 }
 
 #[derive(Debug)]
@@ -76,12 +71,6 @@ impl From<Error> for String {
             Error::Other(msg) => format!("Other: {msg}"),
         }
     }
-}
-
-#[derive(Debug)]
-enum State {
-    CycleBurn(Op, u8, u8),
-    Reset,
 }
 
 #[allow(dead_code)]
@@ -108,14 +97,8 @@ where
             V: false,
             N: false,
 
-            st: Some(State::Reset),
-            interupts: VecDeque::new(),
+            noop: 0,
         }
-    }
-
-    /// Reset processor
-    fn reset(&mut self) {
-        self.st = Some(State::Reset);
     }
 
     /// Read byte from address
@@ -151,28 +134,34 @@ where
         Ok(data)
     }
 
-    /// Fetch byte from memory using provided address mode
-    fn fetch_mode(&mut self, mode: &AddressMode) -> Result<Byte, Error> {
+    /// Read next op from memory without changing the PC
+    fn read_op(&self) -> Result<Op, Error> {
+        self.read(self.PC)?.try_into()
+    }
+
+    /// Fetch op from memory that the PC points to and increment the PC
+    fn fetch_op(&mut self) -> Result<Op, Error> {
+        let op = self.read_op()?;
+        self.PC += 1;
+        Ok(op)
+    }
+
+    /// Fetch memory address that is referenced by some address mode
+    fn fetch_addr(&mut self, mode: &AddressMode) -> Result<Word, Error> {
         Ok(match mode {
-            AddressMode::Accumulator => {
+            AddressMode::Accumulator | AddressMode::Relative | AddressMode::Implicit => {
                 return Err(Error::Other("Mode not supported".to_string()));
             }
-            AddressMode::Immediate => self.fetch()?,
+            AddressMode::Immediate => {
+                self.PC += 1;
+                self.PC - 1
+            }
             AddressMode::ZeroPage => todo!(),
             AddressMode::ZeroPageX => todo!(),
             AddressMode::ZeroPageY => todo!(),
-            AddressMode::Absolute => {
-                let addr = self.fetch_word()?;
-                self.read(addr)?
-            }
-            AddressMode::AbsoluteX => {
-                let addr = self.fetch_word()? + u16::from(self.X);
-                self.read(addr)?
-            }
-            AddressMode::AbsoluteY => {
-                let addr = self.fetch_word()? + u16::from(self.Y);
-                self.read(addr)?
-            }
+            AddressMode::Absolute => self.fetch_word()?,
+            AddressMode::AbsoluteX => self.fetch_word()? + u16::from(self.X),
+            AddressMode::AbsoluteY => self.fetch_word()? + u16::from(self.Y),
             AddressMode::Indirect => todo!(),
             AddressMode::IndexedIndirect => todo!(),
             AddressMode::IndirectIndexed => todo!(),
@@ -188,57 +177,6 @@ where
         } else {
             Err(Error::OutOfBounds(addr))
         }
-    }
-
-    /// Write byte into memory using provided address mode
-    fn write_mode(&mut self, mode: &AddressMode, value: impl Into<Byte>) -> Result<(), Error> {
-        match mode {
-            AddressMode::Accumulator => {
-                return Err(Error::Other("Mode not supported".to_string()));
-            }
-            AddressMode::Immediate => todo!(),
-            AddressMode::ZeroPage => todo!(),
-            AddressMode::ZeroPageX => todo!(),
-            AddressMode::ZeroPageY => todo!(),
-            AddressMode::Absolute => {
-                let addr = self.fetch_word()?;
-                self.write(addr, value)?;
-            }
-            AddressMode::AbsoluteX => {
-                let addr = self.fetch_word()? + u16::from(self.X);
-                self.write(addr, value)?;
-            }
-            AddressMode::AbsoluteY => {
-                let addr = self.fetch_word()? + u16::from(self.Y);
-                self.write(addr, value)?;
-            }
-            AddressMode::Indirect => todo!(),
-            AddressMode::IndexedIndirect => todo!(),
-            AddressMode::IndirectIndexed => todo!(),
-        };
-        Ok(())
-    }
-
-    fn edit_mode(&mut self, mode: &AddressMode, f: impl Fn(Byte) -> Byte) -> Result<Byte, Error> {
-        Ok(match mode {
-            AddressMode::ZeroPage => todo!(),
-            AddressMode::ZeroPageX => todo!(),
-            AddressMode::Absolute => {
-                let addr = self.fetch_word()?;
-                let value = f(self.read(addr)?);
-                self.write(addr, value)?;
-                value
-            }
-            AddressMode::AbsoluteX => {
-                let addr = self.fetch_word()? + u16::from(self.X);
-                let value = f(self.read(addr)?);
-                self.write(addr, value)?;
-                value
-            }
-            _ => {
-                return Err(Error::Other("Mode not supported".to_string()));
-            }
-        })
     }
 
     /// Push byte onto the stack
@@ -296,16 +234,18 @@ where
     }
 
     pub fn tick_until_nop(&mut self) -> Result<(), TickError> {
-        let mut count = 1;
+        let mut count = 0;
         loop {
-            if matches!(&self.st, Some(State::CycleBurn(Op::Nop, _, _))) {
-                return self.tick();
+            if matches!(self.read_op()?, Op(OpCode::Nop, _, _)) {
+                return Ok(());
             }
-            self.tick()?;
+
             count += 1;
             if count > 2000 {
                 return Err("Endless Loop".to_string());
             }
+
+            self.tick()?;
         }
     }
 
@@ -317,58 +257,394 @@ where
     }
 }
 
+macro_rules! flags_zn {
+    ($self:ident, $r:expr) => {
+        $self.Z = $r == 0;
+        $self.N = ($r & 0b1000_0000) > 0;
+    };
+}
+
+macro_rules! compare {
+    ($self:ident, $r:ident, $mode:ident) => {
+        let addr = $self.fetch_addr(&$mode)?;
+        let data = $self.read(addr)?;
+        $self.C = $self.$r >= data;
+        $self.Z = $self.$r == data;
+        $self.N = (data & 0b1000_0000) > 0;
+    };
+}
+
+macro_rules! branch {
+    ($self:ident, $cond:expr) => {
+        if $cond {
+            $self.PC = u16::try_from(i32::from($self.PC) + i32::from($self.fetch()?))
+                .map_err(|_| Error::Other("Failed to calculate offset".to_string()))?;
+            true
+        } else {
+            false
+        }
+    };
+}
+
 impl<T> Tickable for Cpu<T>
 where
     T: Addressable,
 {
+    #[allow(clippy::too_many_lines)]
     fn tick(&mut self) -> Result<(), TickError> {
-        self.st = match &self.st {
-            None => {
-                if let Some(addr) = self.interupts.pop_front() {
-                    Some(State::CycleBurn(Op::Interrupt(addr), 1, 7))
+        // Burn cycles if we need to
+        if self.noop != 0 {
+            self.noop -= 1;
+            return Ok(());
+        }
+
+        let Op(op, mode, cycles) = self.fetch_op()?;
+
+        let mut noop = match cycles {
+            Cycles::Constant(c) | Cycles::Page(c) | Cycles::Branch(c) => c,
+        };
+
+        // We used 1 cycle to fetch the op code, so no need to burn that
+        noop -= 1;
+
+        // Execute op code
+        match (op, mode) {
+            (OpCode::Lda, mode) => {
+                let addr = self.fetch_addr(&mode)?;
+                self.A = self.read(addr)?;
+                flags_zn!(self, self.A);
+            }
+            (OpCode::Ldx, mode) => {
+                let addr = self.fetch_addr(&mode)?;
+                self.X = self.read(addr)?;
+                flags_zn!(self, self.X);
+            }
+            (OpCode::Ldy, mode) => {
+                let addr = self.fetch_addr(&mode)?;
+                self.Y = self.read(addr)?;
+                flags_zn!(self, self.Y);
+            }
+            (OpCode::Sta, mode) => {
+                let addr = self.fetch_addr(&mode)?;
+                self.write(addr, self.A)?;
+            }
+            (OpCode::Stx, mode) => {
+                let addr = self.fetch_addr(&mode)?;
+                self.write(addr, self.X)?;
+            }
+            (OpCode::Sty, mode) => {
+                let addr = self.fetch_addr(&mode)?;
+                self.write(addr, self.Y)?;
+            }
+            (OpCode::Tax, _) => {
+                self.X = self.A;
+                flags_zn!(self, self.X);
+            }
+            (OpCode::Tay, _) => {
+                self.Y = self.A;
+                flags_zn!(self, self.Y);
+            }
+            (OpCode::Txa, _) => {
+                self.A = self.X;
+                flags_zn!(self, self.A);
+            }
+            (OpCode::Tya, _) => {
+                self.A = self.Y;
+                flags_zn!(self, self.A);
+            }
+            (OpCode::Tsx, _) => {
+                self.X = self.SP;
+                flags_zn!(self, self.X);
+            }
+            (OpCode::Txs, _) => {
+                self.SP = self.X;
+            }
+            (OpCode::Pha, _) => {
+                self.stack_push(self.A)?;
+            }
+            (OpCode::Php, _) => {
+                self.stack_push(self.status_get())?;
+            }
+            (OpCode::Pla, _) => {
+                self.A = self.stack_pop()?;
+                flags_zn!(self, self.A);
+            }
+            (OpCode::Plp, _) => {
+                let status = self.stack_pop()?;
+                self.status_set(status);
+            }
+            (OpCode::And, mode) => {
+                let addr = self.fetch_addr(&mode)?;
+                self.A &= self.read(addr)?;
+                flags_zn!(self, self.A);
+            }
+            (OpCode::Eor, mode) => {
+                let addr = self.fetch_addr(&mode)?;
+                self.A ^= self.read(addr)?;
+                flags_zn!(self, self.A);
+            }
+            (OpCode::Ora, mode) => {
+                let addr = self.fetch_addr(&mode)?;
+                self.A |= self.read(addr)?;
+                flags_zn!(self, self.A);
+            }
+            (OpCode::Bit, mode) => {
+                let addr = self.fetch_addr(&mode)?;
+                let data = self.read(addr)?;
+                self.Z = (data & self.A) == 0;
+                self.V = (data & 0b0100_0000) > 0;
+                self.N = (data & 0b1000_0000) > 0;
+            }
+            (OpCode::Adc, mode) => {
+                // TODO
+                let addr = self.fetch_addr(&mode)?;
+                let data = self.read(addr)?;
+                let (data, carry1) = if self.C {
+                    data.overflowing_add(1)
                 } else {
-                    let pc = self.PC;
-                    let op_code = self.fetch()?;
-                    let (op, cycles) = self.parse(op_code)?;
-                    dbg!(format!("{:#06x} {:#02x} {:?}", pc, op_code, op));
-                    Some(State::CycleBurn(op, 1, cycles))
+                    (data, false)
+                };
+                let (sum, carry2) = self.A.overflowing_add(data);
+                self.A = sum;
+                self.C = carry1 || carry2;
+                flags_zn!(self, self.A);
+            }
+            (OpCode::Sbc, _mode) => {
+                // TODO
+                todo!()
+            }
+            (OpCode::Cmp, mode) => {
+                compare!(self, A, mode);
+            }
+            (OpCode::Cpx, mode) => {
+                compare!(self, X, mode);
+            }
+            (OpCode::Cpy, mode) => {
+                compare!(self, Y, mode);
+            }
+            (OpCode::Inc, mode) => {
+                let addr = self.fetch_addr(&mode)?;
+                let mut data = self.read(addr)?;
+                data = data.wrapping_add(1);
+                self.write(addr, data)?;
+                flags_zn!(self, data);
+            }
+            (OpCode::Inx, _) => {
+                self.X = self.X.wrapping_add(1);
+                flags_zn!(self, self.X);
+            }
+            (OpCode::Iny, _) => {
+                self.Y = self.Y.wrapping_add(1);
+                flags_zn!(self, self.Y);
+            }
+            (OpCode::Dec, mode) => {
+                let addr = self.fetch_addr(&mode)?;
+                let mut data = self.read(addr)?;
+                data = data.wrapping_sub(1);
+                self.write(addr, data)?;
+                flags_zn!(self, data);
+            }
+            (OpCode::Dex, _) => {
+                self.X = self.X.wrapping_sub(1);
+                flags_zn!(self, self.X);
+            }
+            (OpCode::Dey, _) => {
+                self.Y = self.Y.wrapping_sub(1);
+                flags_zn!(self, self.Y);
+            }
+            (OpCode::Asl, AddressMode::Accumulator) => {
+                // TODO
+                todo!()
+            }
+            (OpCode::Asl, _mode) => {
+                // TODO
+                todo!()
+            }
+            (OpCode::Lsr, AddressMode::Accumulator) => {
+                // TODO
+                todo!()
+            }
+            (OpCode::Lsr, _mode) => {
+                // TODO
+                todo!()
+            }
+            (OpCode::Rol, AddressMode::Accumulator) => {
+                // TODO
+                todo!()
+            }
+            (OpCode::Rol, _mode) => {
+                // TODO
+                todo!()
+            }
+            (OpCode::Ror, AddressMode::Accumulator) => {
+                // TODO
+                todo!()
+            }
+            (OpCode::Ror, _mode) => {
+                // TODO
+                todo!()
+            }
+            (OpCode::Jmp, AddressMode::Absolute) => {
+                self.PC = self.fetch_word()?;
+            }
+            (OpCode::Jmp, AddressMode::Indirect) => {
+                let addr = self.fetch_word()?;
+                self.PC = self.read_word(addr)?;
+            }
+            (OpCode::Jsr, _) => {
+                let new_pc = self.fetch_word()?;
+                let Address::Full(addr, page) = Address::from(self.PC - 1) else {
+                    return Err("Could not construct address from PC".to_string());
+                };
+                self.stack_push(page)?;
+                self.stack_push(addr)?;
+                self.PC = new_pc;
+            }
+            (OpCode::Rts, _) => {
+                let addr = self.stack_pop()?;
+                let page = self.stack_pop()?;
+                self.PC = Address::Full(addr, page).into();
+                self.PC += 1;
+            }
+            (OpCode::Bcc, _) => {
+                if branch!(self, !self.C) {
+                    noop += 1;
                 }
             }
-            Some(state) => match state {
-                State::CycleBurn(op, curr, total) => {
-                    let op = op.clone();
-                    let curr = curr + 1;
-                    if curr == *total {
-                        self.execute(op)?; // TODO: Print nice debug message with PC
-                        None
-                    } else {
-                        Some(State::CycleBurn(op, curr, *total))
-                    }
+            (OpCode::Bcs, _) => {
+                if branch!(self, self.C) {
+                    noop += 1;
                 }
-                State::Reset => {
-                    self.SP = SP_ADDR;
-
-                    self.PC = self.read_word(RESB)?;
-
-                    self.A = 0;
-                    self.X = 0;
-                    self.Y = 0;
-
-                    // * => Set by software?
-                    self.C = false; // *
-                    self.Z = false; // *
-                    self.I = true;
-                    self.D = false;
-                    self.B = true;
-                    self.V = false; // *
-                    self.N = false; // *
-
-                    self.interupts = VecDeque::new();
-
-                    None
+            }
+            (OpCode::Beq, _) => {
+                if branch!(self, self.Z) {
+                    noop += 1;
                 }
-            },
+            }
+            (OpCode::Bmi, _) => {
+                if branch!(self, self.N) {
+                    noop += 1;
+                }
+            }
+            (OpCode::Bne, _) => {
+                if branch!(self, !self.Z) {
+                    noop += 1;
+                }
+            }
+            (OpCode::Bpl, _) => {
+                if branch!(self, !self.N) {
+                    noop += 1;
+                }
+            }
+            (OpCode::Bvc, _) => {
+                if branch!(self, !self.V) {
+                    noop += 1;
+                }
+            }
+            (OpCode::Bvs, _) => {
+                if branch!(self, self.V) {
+                    noop += 1;
+                }
+            }
+            (OpCode::Clc, _) => {
+                self.C = false;
+            }
+            (OpCode::Cld, _) => {
+                self.D = false;
+            }
+            (OpCode::Cli, _) => {
+                self.I = false;
+            }
+            (OpCode::Clv, _) => {
+                self.V = false;
+            }
+            (OpCode::Sec, _) => {
+                self.C = true;
+            }
+            (OpCode::Sed, _) => {
+                self.D = true;
+                panic!("Decimal Mode not supported");
+            }
+            (OpCode::Sei, _) => {
+                self.I = true;
+            }
+            (OpCode::Brk, _) => {
+                self.interupt(0)?;
+            }
+            (OpCode::Rti, _) => {
+                self.I = false;
+
+                let status = self.stack_pop()?;
+                self.status_set(status);
+
+                let addr = self.stack_pop()?;
+                let page = self.stack_pop()?;
+                self.PC = Address::Full(addr, page).into();
+                self.PC += 1;
+            }
+            (OpCode::Nop, _) => {}
+            (op, mode) => todo!("{:?}({:?})", op, mode),
         };
+
+        self.noop = noop;
+
+        Ok(())
+    }
+}
+
+impl<T> Interuptable for Cpu<T>
+where
+    T: Addressable,
+{
+    fn interupt(&mut self, tp: impl Into<crate::Interupt>) -> Result<(), InteruptError> {
+        let int_addr = match tp.into() {
+            0 => IRQB,
+            _ => NMIB,
+        };
+
+        if self.I && int_addr == IRQB {
+            return Ok(());
+        }
+
+        let Address::Full(addr, page) = Address::from(self.PC - 1) else {
+            return Err("Could not construct address from PC".to_string());
+        };
+        self.stack_push(page)?;
+        self.stack_push(addr)?;
+        self.PC = self.read_word(int_addr)?;
+
+        self.stack_push(self.status_get())?;
+
+        self.I = true;
+
+        Ok(())
+    }
+}
+
+impl<T> Resetable for Cpu<T>
+where
+    T: Addressable,
+{
+    /// Reset processor
+    fn reset(&mut self) -> Result<(), crate::ResetError> {
+        self.SP = SP_ADDR;
+        self.PC = self.read_word(RESB)?;
+
+        self.A = 0;
+        self.X = 0;
+        self.Y = 0;
+
+        // * => Set by software?
+        // self.C = false; // *
+        // self.Z = false; // *
+        self.I = true;
+        self.D = false;
+        self.B = true;
+        // self.V = false; // *
+        // self.N = false; // *
+
+        self.noop = 0;
+
         Ok(())
     }
 }

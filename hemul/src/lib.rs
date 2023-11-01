@@ -13,14 +13,17 @@ pub trait Addressable: Index<Word, Output = Byte> + IndexMut<Word, Output = Byte
 }
 
 pub type TickError = String;
-
 pub trait Tickable {
     fn tick(&mut self) -> Result<(), TickError>;
 }
 
+pub type ResetError = String;
+pub trait Resetable {
+    fn reset(&mut self) -> Result<(), ResetError>;
+}
+
 pub type Interupt = u8;
 pub type InteruptError = String;
-
 pub trait Interuptable {
     fn interupt(&mut self, tp: impl Into<Interupt>) -> Result<(), InteruptError>;
 }
@@ -34,7 +37,10 @@ pub trait Snapshottable {
 
 #[macro_export]
 macro_rules! asm {
-    ($a:expr) => {
-        hemul::cpu::Cpu::new(hemul::memory::Memory::from($a))
-    };
+    ($a:expr) => {{
+        use hemul::Resetable;
+        let mut cpu = hemul::cpu::Cpu::new(hemul::memory::Memory::from($a));
+        let _ = cpu.reset();
+        cpu
+    }};
 }

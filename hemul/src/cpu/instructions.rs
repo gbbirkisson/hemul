@@ -1,19 +1,8 @@
-use crate::{
-    cpu::{Addressable, Cpu, Error},
-    Byte, Word,
-};
-
-use super::IRQB;
-
-pub trait OpParser {
-    /// Parses a byte into an tuple that represents the `OpCode` and number of cycles that
-    /// instruction takes to execute
-    fn parse(&self, value: Byte) -> Result<(Op, u8), Error>;
-}
+use crate::{cpu::Error, Byte};
 
 /// The 6502 instruction set
 #[derive(Debug, Clone)]
-pub enum Op {
+pub enum OpCode {
     // Load/Store Operations
     // These instructions transfer a single byte between memory and one of the registers. Load
     // operations set the negative (N) and zero (Z) flags depending on the value of transferred.
@@ -24,7 +13,7 @@ pub enum Op {
     /// ```
     /// Loads a byte of memory into the accumulator setting the zero and negative flags as
     /// appropriate.
-    Lda(AddressMode),
+    Lda,
 
     /// LDX - Load X Register
     /// ```text
@@ -32,7 +21,7 @@ pub enum Op {
     /// ```
     /// Loads a byte of memory into the X register setting the zero and negative flags as
     /// appropriate.
-    Ldx(AddressMode),
+    Ldx,
 
     /// LDY - Load Y Register
     /// ```text
@@ -40,28 +29,28 @@ pub enum Op {
     /// ```
     /// Loads a byte of memory into the Y register setting the zero and negative flags as
     /// appropriate.
-    Ldy(AddressMode),
+    Ldy,
 
     /// STA - Store Accumulator
     /// ```text
     /// M = A
     /// ```
     /// Stores the contents of the accumulator into memory.
-    Sta(AddressMode),
+    Sta,
 
     /// STX - Store X Register
     /// ```text
     /// M = X
     /// ```
     /// Stores the contents of the X register into memory.
-    Stx(AddressMode),
+    Stx,
 
     /// STY - Store Y Register
     /// ```text
     /// M = Y
     /// ```
     /// Stores the contents of the Y register into memory.
-    Sty(AddressMode),
+    Sty,
 
     // Register Transfers
     // The contents of the X and Y registers can be moved to or from the accumulator, setting the
@@ -149,7 +138,7 @@ pub enum Op {
     /// ```
     /// A logical AND is performed, bit by bit, on the accumulator contents using the contents of a
     /// byte of memory.
-    And(AddressMode),
+    And,
 
     /// EOR - Exclusive OR
     /// ```text
@@ -157,7 +146,7 @@ pub enum Op {
     /// ```
     /// An exclusive OR is performed, bit by bit, on the accumulator contents using the contents of
     /// a byte of memory.
-    Eor(AddressMode),
+    Eor,
 
     /// ORA - Logical Inclusive OR
     /// ```text
@@ -165,7 +154,7 @@ pub enum Op {
     /// ```
     /// An inclusive OR is performed, bit by bit, on the accumulator contents using the contents of
     /// a byte of memory.
-    Ora(AddressMode),
+    Ora,
 
     /// BIT - Bit Test
     /// ```text
@@ -175,7 +164,7 @@ pub enum Op {
     /// The mask pattern in A is ANDed with the value in memory to set or clear the zero flag, but
     /// the result is not kept. Bits 7 and 6 of the value from memory are copied into the N and V
     /// flags.
-    Bit(AddressMode),
+    Bit,
 
     // Arithmetic
     // The arithmetic operations perform addition and subtraction on the contents of the
@@ -188,7 +177,7 @@ pub enum Op {
     /// This instruction adds the contents of a memory location to the accumulator together with
     /// the carry bit. If overflow occurs the carry bit is set, this enables multiple byte addition
     /// to be performed.
-    Adc(AddressMode),
+    Adc,
 
     /// SBC - Subtract with Carry
     /// ```text
@@ -197,7 +186,7 @@ pub enum Op {
     /// This instruction subtracts the contents of a memory location to the accumulator together
     /// with the not of the carry bit. If overflow occurs the carry bit is clear, this enables
     /// multiple byte subtraction to be performed.
-    Sbc(AddressMode),
+    Sbc,
 
     /// CMP - Compare
     /// ```text
@@ -205,7 +194,7 @@ pub enum Op {
     /// ```
     /// This instruction compares the contents of the accumulator with another memory held value
     /// and sets the zero and carry flags as appropriate.
-    Cmp(AddressMode),
+    Cmp,
 
     /// CPX - Compare X Register
     /// ```text
@@ -213,7 +202,7 @@ pub enum Op {
     /// ```
     /// This instruction compares the contents of the X register with another memory held value and
     /// sets the zero and carry flags as appropriate.
-    Cpx(AddressMode),
+    Cpx,
 
     /// CPY - Compare Y Register
     /// ```text
@@ -221,7 +210,7 @@ pub enum Op {
     /// ```
     /// This instruction compares the contents of the Y register with another memory held value and
     /// sets the zero and carry flags as appropriate.
-    Cpy(AddressMode),
+    Cpy,
 
     // Increments & Decrements
     // Increment or decrement a memory location or one of the X or Y registers by one setting the
@@ -232,7 +221,7 @@ pub enum Op {
     /// ```
     /// Adds one to the value held at a specified memory location setting the zero and negative
     /// flags as appropriate.
-    Inc(AddressMode),
+    Inc,
 
     /// INX - Increment X Register
     /// ```text
@@ -254,7 +243,7 @@ pub enum Op {
     /// ```
     /// Subtracts one from the value held at a specified memory location setting the zero and
     /// negative flags as appropriate.
-    Dec(AddressMode),
+    Dec,
 
     /// DEX - Decrement X Register
     /// ```text
@@ -284,24 +273,24 @@ pub enum Op {
     /// 0 is set to 0 and bit 7 is placed in the carry flag. The effect of this operation is to
     /// multiply the memory contents by 2 (ignoring 2's complement considerations), setting the
     /// carry if the result will not fit in 8 bits.
-    Asl(AddressMode),
+    Asl,
     /// LSR - Logical Shift Right
     /// ```text
     /// A,C,Z,N = A/2 or M,C,Z,N = M/2
     /// ```
     /// Each of the bits in A or M is shift one place to the right. The bit that was in bit 0 is
     /// shifted into the carry flag. Bit 7 is set to zero.
-    Lsr(AddressMode),
+    Lsr,
 
     /// ROL - Rotate Left
     /// Move each of the bits in either A or M one place to the left. Bit 0 is filled with the
     /// current value of the carry flag whilst the old bit 7 becomes the new carry flag value.
-    Rol(AddressMode),
+    Rol,
 
     /// ROR - Rotate Right
     /// Move each of the bits in either A or M one place to the right. Bit 7 is filled with the
     /// current value of the carry flag whilst the old bit 0 becomes the new carry flag value.
-    Ror(AddressMode),
+    Ror,
 
     // Jumps & Calls
     // The following instructions modify the program counter causing a break to normal sequential
@@ -309,12 +298,13 @@ pub enum Op {
     // new location allowing a subsequent RTS to return execution to the instruction after the
     // call.
     /// Sets the program counter to the address specified by the operand.
-    Jmp(AddressMode),
+    Jmp,
 
     /// JSR - Jump to Subroutine
     /// The JSR instruction pushes the address (minus one) of the return point on to the stack and
     /// then sets the program counter to the target memory address.
     Jsr,
+
     /// RTS - Return from Subroutine
     /// The RTS instruction is used at the end of a subroutine to return to the calling routine. It
     /// pulls the program counter (minus one) from the stack.
@@ -424,7 +414,6 @@ pub enum Op {
     /// The BRK instruction forces the generation of an interrupt request. The program counter and
     /// processor status are pushed on the stack then the IRQ interrupt vector at $FFFE/F is loaded
     /// into the PC and the break flag in the status set to one.
-    #[allow(dead_code)]
     Brk,
 
     /// NOP - No Operation
@@ -436,9 +425,6 @@ pub enum Op {
     /// The RTI instruction is used at the end of an interrupt processing routine. It pulls the
     /// processor flags from the stack followed by the program counter.
     Rti,
-
-    /// Internal instruction that triggers a interrupt
-    Interrupt(Word),
 }
 
 /// The 6502 processor provides several ways in which memory locations can be addressed. Some
@@ -451,7 +437,7 @@ pub enum AddressMode {
     /// is implied directly by the function of the instruction itself and no further operand needs
     /// to be specified. Operations like 'Clear Carry Flag' (CLC) and 'Return from Subroutine'
     /// (RTS) are implicit.
-    //Implicit,
+    Implicit,
 
     /// Some instructions have an option to operate directly upon the accumulator. The programmer
     /// specifies this by using a special operand value, 'A'. For example:
@@ -527,7 +513,7 @@ pub enum AddressMode {
     /// BEQ LABEL       ;Branch if zero flag set to LABEL
     /// BNE *+4         ;Skip over the following 2 byte instruction
     /// ```
-    //Relative,
+    Relative,
 
     /// Instructions using absolute addressing contain a full 16 bit address to identify the target
     /// location.
@@ -595,195 +581,237 @@ pub enum AddressMode {
     IndirectIndexed,
 }
 
-impl<T> OpParser for Cpu<T>
-where
-    T: Addressable,
-{
+/// Denotes how many cycles a particular instruction takes
+#[derive(Debug, Clone)]
+pub enum Cycles {
+    /// The instruction always takes constant time
+    Constant(u8),
+
+    /// The instruction takes some time +1 if page is crossed
+    Page(u8),
+
+    /// The instruction take some time +1 if branch succeeds, +2 if page is crossed
+    Branch(u8),
+}
+
+/// Container for instruction, address mode and number of cycles used for a given combo
+#[derive(Clone)]
+pub struct Op(pub OpCode, pub AddressMode, pub Cycles);
+
+impl std::fmt::Debug for Op {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.1 {
+            AddressMode::Implicit | AddressMode::Relative => {
+                write!(f, "{:?}", self.0)
+            }
+            _ => {
+                write!(f, "{:?}({:?})", self.0, self.1)
+            }
+        }
+    }
+}
+
+macro_rules! op {
+    ($op_code:ident, $address_mode:ident, $cycles: literal) => {
+        Op(
+            OpCode::$op_code,
+            AddressMode::$address_mode,
+            Cycles::Constant($cycles),
+        )
+    };
+    ($op_code:ident, $address_mode:ident, $cycles: expr) => {
+        Op(OpCode::$op_code, AddressMode::$address_mode, $cycles)
+    };
+}
+
+impl TryFrom<Byte> for Op {
+    type Error = Error;
+
     #[allow(clippy::too_many_lines)]
-    fn parse(&self, value: Byte) -> Result<(Op, u8), Error> {
+    fn try_from(value: Byte) -> Result<Self, Self::Error> {
         Ok(match value {
-            0xA9 => (Op::Lda(AddressMode::Immediate), 2),
-            0xA5 => (Op::Lda(AddressMode::ZeroPage), 3),
-            0xB5 => (Op::Lda(AddressMode::ZeroPageX), 4),
-            0xAD => (Op::Lda(AddressMode::Absolute), 4),
-            0xBD => (Op::Lda(AddressMode::AbsoluteX), 4), // +1 if page is crossed
-            0xB9 => (Op::Lda(AddressMode::AbsoluteY), 4), // +1 if page is crossed
-            0xA1 => (Op::Lda(AddressMode::IndexedIndirect), 6),
-            0xB1 => (Op::Lda(AddressMode::IndirectIndexed), 5), // +1 if page is crossed
+            0xA9 => op!(Lda, Immediate, 2),
+            0xA5 => op!(Lda, ZeroPage, 3),
+            0xB5 => op!(Lda, ZeroPageX, 4),
+            0xAD => op!(Lda, Absolute, 4),
+            0xBD => op!(Lda, AbsoluteX, Cycles::Page(4)), // +1 if page is crossed
+            0xB9 => op!(Lda, AbsoluteY, Cycles::Page(4)), // +1 if page is crossed
+            0xA1 => op!(Lda, IndexedIndirect, 6),
+            0xB1 => op!(Lda, IndirectIndexed, Cycles::Page(5)), // +1 if page is crossed
 
-            0xA2 => (Op::Ldx(AddressMode::Immediate), 2),
-            0xA6 => (Op::Ldx(AddressMode::ZeroPage), 3),
-            0xB6 => (Op::Ldx(AddressMode::ZeroPageY), 4),
-            0xAE => (Op::Ldx(AddressMode::Absolute), 4),
-            0xBE => (Op::Ldx(AddressMode::AbsoluteY), 4), // +1 if page is crossed
+            0xA2 => op!(Ldx, Immediate, 2),
+            0xA6 => op!(Ldx, ZeroPage, 3),
+            0xB6 => op!(Ldx, ZeroPageY, 4),
+            0xAE => op!(Ldx, Absolute, 4),
+            0xBE => op!(Ldx, AbsoluteY, Cycles::Page(4)), // +1 if page is crossed
 
-            0xA0 => (Op::Ldy(AddressMode::Immediate), 2),
-            0xA4 => (Op::Ldy(AddressMode::ZeroPage), 3),
-            0xB4 => (Op::Ldy(AddressMode::ZeroPageX), 4),
-            0xAC => (Op::Ldy(AddressMode::Absolute), 4),
-            0xBC => (Op::Ldy(AddressMode::AbsoluteX), 4), // +1 if page is crossed
+            0xA0 => op!(Ldy, Immediate, 2),
+            0xA4 => op!(Ldy, ZeroPage, 3),
+            0xB4 => op!(Ldy, ZeroPageX, 4),
+            0xAC => op!(Ldy, Absolute, 4),
+            0xBC => op!(Ldy, AbsoluteX, Cycles::Page(4)), // +1 if page is crossed
 
-            0x85 => (Op::Sta(AddressMode::ZeroPage), 3),
-            0x95 => (Op::Sta(AddressMode::ZeroPageX), 4),
-            0x8D => (Op::Sta(AddressMode::Absolute), 4),
-            0x9D => (Op::Sta(AddressMode::AbsoluteX), 5),
-            0x99 => (Op::Sta(AddressMode::AbsoluteY), 5),
-            0x81 => (Op::Sta(AddressMode::IndexedIndirect), 6),
-            0x91 => (Op::Sta(AddressMode::IndirectIndexed), 6),
+            0x85 => op!(Sta, ZeroPage, 3),
+            0x95 => op!(Sta, ZeroPageX, 4),
+            0x8D => op!(Sta, Absolute, 4),
+            0x9D => op!(Sta, AbsoluteX, 5),
+            0x99 => op!(Sta, AbsoluteY, 5),
+            0x81 => op!(Sta, IndexedIndirect, 6),
+            0x91 => op!(Sta, IndirectIndexed, 6),
 
-            0x86 => (Op::Stx(AddressMode::ZeroPage), 3),
-            0x96 => (Op::Stx(AddressMode::ZeroPageY), 4),
-            0x8E => (Op::Stx(AddressMode::Absolute), 4),
+            0x86 => op!(Stx, ZeroPage, 3),
+            0x96 => op!(Stx, ZeroPageY, 4),
+            0x8E => op!(Stx, Absolute, 4),
 
-            0x84 => (Op::Sty(AddressMode::ZeroPage), 3),
-            0x94 => (Op::Sty(AddressMode::ZeroPageX), 4),
-            0x8C => (Op::Sty(AddressMode::Absolute), 4),
+            0x84 => op!(Sty, ZeroPage, 3),
+            0x94 => op!(Sty, ZeroPageX, 4),
+            0x8C => op!(Sty, Absolute, 4),
 
-            0xAA => (Op::Tax, 2),
-            0xA8 => (Op::Tay, 2),
-            0x8A => (Op::Txa, 2),
-            0x98 => (Op::Tya, 2),
-            0xBA => (Op::Tsx, 2),
-            0x9A => (Op::Txs, 2),
+            0xAA => op!(Tax, Implicit, 2),
+            0xA8 => op!(Tay, Implicit, 2),
+            0x8A => op!(Txa, Implicit, 2),
+            0x98 => op!(Tya, Implicit, 2),
+            0xBA => op!(Tsx, Implicit, 2),
+            0x9A => op!(Txs, Implicit, 2),
 
-            0x48 => (Op::Pha, 3),
-            0x08 => (Op::Php, 3),
-            0x68 => (Op::Pla, 4),
-            0x28 => (Op::Plp, 4),
+            0x48 => op!(Pha, Implicit, 3),
+            0x08 => op!(Php, Implicit, 3),
+            0x68 => op!(Pla, Implicit, 4),
+            0x28 => op!(Plp, Implicit, 4),
 
-            0x29 => (Op::And(AddressMode::Immediate), 2),
-            0x25 => (Op::And(AddressMode::ZeroPage), 3),
-            0x35 => (Op::And(AddressMode::ZeroPageX), 4),
-            0x2D => (Op::And(AddressMode::Absolute), 4),
-            0x3D => (Op::And(AddressMode::AbsoluteX), 4), // +1 if page is crossed
-            0x39 => (Op::And(AddressMode::AbsoluteY), 4), // +1 if page is crossed
-            0x21 => (Op::And(AddressMode::IndexedIndirect), 6),
-            0x31 => (Op::And(AddressMode::IndirectIndexed), 5), // +1 if page is crossed
+            0x29 => op!(And, Immediate, 2),
+            0x25 => op!(And, ZeroPage, 3),
+            0x35 => op!(And, ZeroPageX, 4),
+            0x2D => op!(And, Absolute, 4),
+            0x3D => op!(And, AbsoluteX, Cycles::Page(4)), // +1 if page is crossed
+            0x39 => op!(And, AbsoluteY, Cycles::Page(4)), // +1 if page is crossed
+            0x21 => op!(And, IndexedIndirect, 6),
+            0x31 => op!(And, IndirectIndexed, Cycles::Page(5)), // +1 if page is crossed
 
-            0x49 => (Op::Eor(AddressMode::Immediate), 2),
-            0x45 => (Op::Eor(AddressMode::ZeroPage), 3),
-            0x55 => (Op::Eor(AddressMode::ZeroPageX), 4),
-            0x4D => (Op::Eor(AddressMode::Absolute), 4),
-            0x5D => (Op::Eor(AddressMode::AbsoluteX), 4), // +1 if page is crossed
-            0x59 => (Op::Eor(AddressMode::AbsoluteY), 4), // +1 if page is crossed
-            0x41 => (Op::Eor(AddressMode::IndexedIndirect), 6),
-            0x51 => (Op::Eor(AddressMode::IndirectIndexed), 5), // +1 if page is crossed
+            0x49 => op!(Eor, Immediate, 2),
+            0x45 => op!(Eor, ZeroPage, 3),
+            0x55 => op!(Eor, ZeroPageX, 4),
+            0x4D => op!(Eor, Absolute, 4),
+            0x5D => op!(Eor, AbsoluteX, Cycles::Page(4)), // +1 if page is crossed
+            0x59 => op!(Eor, AbsoluteY, Cycles::Page(4)), // +1 if page is crossed
+            0x41 => op!(Eor, IndexedIndirect, 6),
+            0x51 => op!(Eor, IndirectIndexed, Cycles::Page(5)), // +1 if page is crossed
 
-            0x09 => (Op::Ora(AddressMode::Immediate), 2),
-            0x05 => (Op::Ora(AddressMode::ZeroPage), 3),
-            0x15 => (Op::Ora(AddressMode::ZeroPageX), 4),
-            0x0D => (Op::Ora(AddressMode::Absolute), 4),
-            0x1D => (Op::Ora(AddressMode::AbsoluteX), 4), // +1 if page is crossed
-            0x19 => (Op::Ora(AddressMode::AbsoluteY), 4), // +1 if page is crossed
-            0x01 => (Op::Ora(AddressMode::IndexedIndirect), 6),
-            0x11 => (Op::Ora(AddressMode::IndirectIndexed), 5), // +1 if page is crossed
+            0x09 => op!(Ora, Immediate, 2),
+            0x05 => op!(Ora, ZeroPage, 3),
+            0x15 => op!(Ora, ZeroPageX, 4),
+            0x0D => op!(Ora, Absolute, 4),
+            0x1D => op!(Ora, AbsoluteX, Cycles::Page(4)), // +1 if page is crossed
+            0x19 => op!(Ora, AbsoluteY, Cycles::Page(4)), // +1 if page is crossed
+            0x01 => op!(Ora, IndexedIndirect, 6),
+            0x11 => op!(Ora, IndirectIndexed, Cycles::Page(5)), // +1 if page is crossed
 
-            0x24 => (Op::Bit(AddressMode::ZeroPage), 3),
-            0x2C => (Op::Bit(AddressMode::Absolute), 4),
+            0x24 => op!(Bit, ZeroPage, 3),
+            0x2C => op!(Bit, Absolute, 4),
 
-            0x69 => (Op::Adc(AddressMode::Immediate), 2),
-            0x65 => (Op::Adc(AddressMode::ZeroPage), 3),
-            0x75 => (Op::Adc(AddressMode::ZeroPageX), 4),
-            0x6D => (Op::Adc(AddressMode::Absolute), 4),
-            0x7D => (Op::Adc(AddressMode::AbsoluteX), 4), // +1 if page is crossed
-            0x79 => (Op::Adc(AddressMode::AbsoluteY), 4), // +1 if page is crossed
-            0x61 => (Op::Adc(AddressMode::IndexedIndirect), 6),
-            0x71 => (Op::Adc(AddressMode::IndirectIndexed), 5), // +1 if page is crossed
+            0x69 => op!(Adc, Immediate, 2),
+            0x65 => op!(Adc, ZeroPage, 3),
+            0x75 => op!(Adc, ZeroPageX, 4),
+            0x6D => op!(Adc, Absolute, 4),
+            0x7D => op!(Adc, AbsoluteX, Cycles::Page(4)), // +1 if page is crossed
+            0x79 => op!(Adc, AbsoluteY, Cycles::Page(4)), // +1 if page is crossed
+            0x61 => op!(Adc, IndexedIndirect, 6),
+            0x71 => op!(Adc, IndirectIndexed, Cycles::Page(5)), // +1 if page is crossed
 
-            0xE9 => (Op::Sbc(AddressMode::Immediate), 2),
-            0xE5 => (Op::Sbc(AddressMode::ZeroPage), 3),
-            0xF5 => (Op::Sbc(AddressMode::ZeroPageX), 4),
-            0xED => (Op::Sbc(AddressMode::Absolute), 4),
-            0xFD => (Op::Sbc(AddressMode::AbsoluteX), 4), // +1 if page is crossed
-            0xF9 => (Op::Sbc(AddressMode::AbsoluteY), 4), // +1 if page is crossed
-            0xE1 => (Op::Sbc(AddressMode::IndexedIndirect), 6),
-            0xF1 => (Op::Sbc(AddressMode::IndirectIndexed), 5), // +1 if page is crossed
+            0xE9 => op!(Sbc, Immediate, 2),
+            0xE5 => op!(Sbc, ZeroPage, 3),
+            0xF5 => op!(Sbc, ZeroPageX, 4),
+            0xED => op!(Sbc, Absolute, 4),
+            0xFD => op!(Sbc, AbsoluteX, Cycles::Page(4)), // +1 if page is crossed
+            0xF9 => op!(Sbc, AbsoluteY, Cycles::Page(4)), // +1 if page is crossed
+            0xE1 => op!(Sbc, IndexedIndirect, 6),
+            0xF1 => op!(Sbc, IndirectIndexed, Cycles::Page(5)), // +1 if page is crossed
 
-            0xC9 => (Op::Cmp(AddressMode::Immediate), 2),
-            0xC5 => (Op::Cmp(AddressMode::ZeroPage), 3),
-            0xD5 => (Op::Cmp(AddressMode::ZeroPageX), 4),
-            0xCD => (Op::Cmp(AddressMode::Absolute), 4),
-            0xDD => (Op::Cmp(AddressMode::AbsoluteX), 4), // +1 if page is crossed
-            0xD9 => (Op::Cmp(AddressMode::AbsoluteY), 4), // +1 if page is crossed
-            0xC1 => (Op::Cmp(AddressMode::IndexedIndirect), 6),
-            0xD1 => (Op::Cmp(AddressMode::IndirectIndexed), 5), // +1 if page is crossed
+            0xC9 => op!(Cmp, Immediate, 2),
+            0xC5 => op!(Cmp, ZeroPage, 3),
+            0xD5 => op!(Cmp, ZeroPageX, 4),
+            0xCD => op!(Cmp, Absolute, 4),
+            0xDD => op!(Cmp, AbsoluteX, Cycles::Page(4)), // +1 if page is crossed
+            0xD9 => op!(Cmp, AbsoluteY, Cycles::Page(4)), // +1 if page is crossed
+            0xC1 => op!(Cmp, IndexedIndirect, 6),
+            0xD1 => op!(Cmp, IndirectIndexed, Cycles::Page(5)), // +1 if page is crossed
 
-            0xE0 => (Op::Cpx(AddressMode::Immediate), 2),
-            0xE4 => (Op::Cpx(AddressMode::ZeroPage), 3),
-            0xEC => (Op::Cpx(AddressMode::Absolute), 4),
+            0xE0 => op!(Cpx, Immediate, 2),
+            0xE4 => op!(Cpx, ZeroPage, 3),
+            0xEC => op!(Cpx, Absolute, 4),
 
-            0xC0 => (Op::Cpy(AddressMode::Immediate), 2),
-            0xC4 => (Op::Cpy(AddressMode::ZeroPage), 3),
-            0xCC => (Op::Cpy(AddressMode::Absolute), 4),
+            0xC0 => op!(Cpy, Immediate, 2),
+            0xC4 => op!(Cpy, ZeroPage, 3),
+            0xCC => op!(Cpy, Absolute, 4),
 
-            0xE6 => (Op::Inc(AddressMode::ZeroPage), 5),
-            0xF6 => (Op::Inc(AddressMode::ZeroPageX), 6),
-            0xEE => (Op::Inc(AddressMode::Absolute), 6),
-            0xFE => (Op::Inc(AddressMode::AbsoluteX), 7),
+            0xE6 => op!(Inc, ZeroPage, 5),
+            0xF6 => op!(Inc, ZeroPageX, 6),
+            0xEE => op!(Inc, Absolute, 6),
+            0xFE => op!(Inc, AbsoluteX, 7),
 
-            0xE8 => (Op::Inx, 2),
-            0xC8 => (Op::Iny, 2),
+            0xE8 => op!(Inx, Implicit, 2),
+            0xC8 => op!(Iny, Implicit, 2),
 
-            0xC6 => (Op::Dec(AddressMode::ZeroPage), 5),
-            0xD6 => (Op::Dec(AddressMode::ZeroPageX), 6),
-            0xCE => (Op::Dec(AddressMode::Absolute), 6),
-            0xDE => (Op::Dec(AddressMode::AbsoluteX), 7),
+            0xC6 => op!(Dec, ZeroPage, 5),
+            0xD6 => op!(Dec, ZeroPageX, 6),
+            0xCE => op!(Dec, Absolute, 6),
+            0xDE => op!(Dec, AbsoluteX, 7),
 
-            0xCA => (Op::Dex, 2),
-            0x88 => (Op::Dey, 2),
+            0xCA => op!(Dex, Implicit, 2),
+            0x88 => op!(Dey, Implicit, 2),
 
-            0x0A => (Op::Asl(AddressMode::Accumulator), 2),
-            0x06 => (Op::Asl(AddressMode::ZeroPage), 5),
-            0x16 => (Op::Asl(AddressMode::ZeroPageX), 6),
-            0x0E => (Op::Asl(AddressMode::Absolute), 6),
-            0x1E => (Op::Asl(AddressMode::AbsoluteX), 7),
+            0x0A => op!(Asl, Accumulator, 2),
+            0x06 => op!(Asl, ZeroPage, 5),
+            0x16 => op!(Asl, ZeroPageX, 6),
+            0x0E => op!(Asl, Absolute, 6),
+            0x1E => op!(Asl, AbsoluteX, 7),
 
-            0x4A => (Op::Lsr(AddressMode::Accumulator), 2),
-            0x46 => (Op::Lsr(AddressMode::ZeroPage), 5),
-            0x56 => (Op::Lsr(AddressMode::ZeroPageX), 6),
-            0x4E => (Op::Lsr(AddressMode::Absolute), 6),
-            0x5E => (Op::Lsr(AddressMode::AbsoluteX), 7),
+            0x4A => op!(Lsr, Accumulator, 2),
+            0x46 => op!(Lsr, ZeroPage, 5),
+            0x56 => op!(Lsr, ZeroPageX, 6),
+            0x4E => op!(Lsr, Absolute, 6),
+            0x5E => op!(Lsr, AbsoluteX, 7),
 
-            0x2A => (Op::Rol(AddressMode::Accumulator), 2),
-            0x26 => (Op::Rol(AddressMode::ZeroPage), 5),
-            0x36 => (Op::Rol(AddressMode::ZeroPageX), 6),
-            0x2E => (Op::Rol(AddressMode::Absolute), 6),
-            0x3E => (Op::Rol(AddressMode::AbsoluteX), 7),
+            0x2A => op!(Rol, Accumulator, 2),
+            0x26 => op!(Rol, ZeroPage, 5),
+            0x36 => op!(Rol, ZeroPageX, 6),
+            0x2E => op!(Rol, Absolute, 6),
+            0x3E => op!(Rol, AbsoluteX, 7),
 
-            0x6A => (Op::Ror(AddressMode::Accumulator), 2),
-            0x66 => (Op::Ror(AddressMode::ZeroPage), 5),
-            0x76 => (Op::Ror(AddressMode::ZeroPageX), 6),
-            0x6E => (Op::Ror(AddressMode::Absolute), 6),
-            0x7E => (Op::Ror(AddressMode::AbsoluteX), 7),
+            0x6A => op!(Ror, Accumulator, 2),
+            0x66 => op!(Ror, ZeroPage, 5),
+            0x76 => op!(Ror, ZeroPageX, 6),
+            0x6E => op!(Ror, Absolute, 6),
+            0x7E => op!(Ror, AbsoluteX, 7),
 
-            0x4C => (Op::Jmp(AddressMode::Absolute), 3),
-            0x6C => (Op::Jmp(AddressMode::Indirect), 5),
+            0x4C => op!(Jmp, Absolute, 3),
+            0x6C => op!(Jmp, Indirect, 5),
 
-            0x20 => (Op::Jsr, 6),
-            0x60 => (Op::Rts, 6),
+            0x20 => op!(Jsr, Implicit, 6),
+            0x60 => op!(Rts, Implicit, 6),
 
-            0x90 => (Op::Bcc, 2), // +1 if branch succeeds, +2 if to a new page
-            0xB0 => (Op::Bcs, 2), // +1 if branch succeeds, +2 if to a new page
-            0xF0 => (Op::Beq, 2), // +1 if branch succeeds, +2 if to a new page
-            0x30 => (Op::Bmi, 2), // +1 if branch succeeds, +2 if to a new page
-            0xD0 => (Op::Bne, 2), // +1 if branch succeeds, +2 if to a new page
-            0x10 => (Op::Bpl, 2), // +1 if branch succeeds, +2 if to a new page
-            0x50 => (Op::Bvc, 2), // +1 if branch succeeds, +2 if to a new page
-            0x70 => (Op::Bvs, 2), // +1 if branch succeeds, +2 if to a new page
+            // All these have +1 if branch succeeds, +2 if to a new page
+            0x90 => op!(Bcc, Relative, Cycles::Branch(2)),
+            0xB0 => op!(Bcs, Relative, Cycles::Branch(2)),
+            0xF0 => op!(Beq, Relative, Cycles::Branch(2)),
+            0x30 => op!(Bmi, Relative, Cycles::Branch(2)),
+            0xD0 => op!(Bne, Relative, Cycles::Branch(2)),
+            0x10 => op!(Bpl, Relative, Cycles::Branch(2)),
+            0x50 => op!(Bvc, Relative, Cycles::Branch(2)),
+            0x70 => op!(Bvs, Relative, Cycles::Branch(2)),
 
-            0x18 => (Op::Clc, 2),
-            0xD8 => (Op::Cld, 2),
-            0x58 => (Op::Cli, 2),
-            0xB8 => (Op::Clv, 2),
+            0x18 => op!(Clc, Implicit, 2),
+            0xD8 => op!(Cld, Implicit, 2),
+            0x58 => op!(Cli, Implicit, 2),
+            0xB8 => op!(Clv, Implicit, 2),
 
-            0x38 => (Op::Sec, 2),
-            0xF8 => (Op::Sed, 2),
-            0x78 => (Op::Sei, 2),
+            0x38 => op!(Sec, Implicit, 2),
+            0xF8 => op!(Sed, Implicit, 2),
+            0x78 => op!(Sei, Implicit, 2),
 
-            // 0x00 => (Op::Brk, 7),
-            0x00 => (Op::Interrupt(IRQB), 7),
-            0xEA => (Op::Nop, 2),
-            0x40 => (Op::Rti, 6),
+            0x00 => op!(Brk, Implicit, 7),
+            0xEA => op!(Nop, Implicit, 2),
+            0x40 => op!(Rti, Implicit, 6),
 
             _ => {
                 return Err(Error::BadOpCode(value));
