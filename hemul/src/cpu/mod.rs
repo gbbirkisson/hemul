@@ -275,15 +275,16 @@ macro_rules! compare {
 }
 
 macro_rules! branch {
-    ($self:ident, $cond:expr) => {
+    ($self:ident, $cond:expr) => {{
+        let offset = $self.fetch()?;
         if $cond {
-            $self.PC = u16::try_from(i32::from($self.PC) + i32::from($self.fetch()?))
+            $self.PC = u16::try_from(i32::from($self.PC) + i32::from(offset))
                 .map_err(|_| Error::Other("Failed to calculate offset".to_string()))?;
             true
         } else {
             false
         }
-    };
+    }};
 }
 
 impl<T> Tickable for Cpu<T>
@@ -298,7 +299,9 @@ where
             return Ok(());
         }
 
+        dbg!(self.PC);
         let Op(op, mode, cycles) = self.fetch_op()?;
+        dbg!(&op);
 
         let mut noop = match cycles {
             Cycles::Constant(c) | Cycles::Page(c) | Cycles::Branch(c) => c,
