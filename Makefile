@@ -4,6 +4,7 @@ dev: test lint
 
 .PHONY: test
 test:
+	@ which hexdump > /dev/null || (echo "hexdump is not installed" && false)
 	cargo test
 
 .PHONY: lint

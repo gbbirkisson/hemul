@@ -8,22 +8,35 @@ use std::{
 
 #[allow(non_snake_case, dead_code)]
 pub struct Snapshot {
+    /// Memory dump
     pub dump: Vec<Byte>,
 
-    pub PC: Word, // Program Counter
-    pub SP: Byte, // Stack Pointer
+    /// Program Counter
+    pub PC: Word,
+    /// Stack Pointer
+    pub SP: Byte,
 
-    pub A: Byte, // Accumulator
-    pub X: Byte, // Index Register X
-    pub Y: Byte, // Index Register Y
+    /// Accumulator
+    pub A: Byte,
+    /// Index Register X
+    pub X: Byte,
+    /// Index Register Y
+    pub Y: Byte,
 
-    pub C: PFlag, // Carry Flag
-    pub Z: PFlag, // Zero Flag
-    pub I: PFlag, // Interupt Disable
-    pub D: PFlag, // Decimal Mode
-    pub B: PFlag, // Break Command
-    pub V: PFlag, // Overflow Flag
-    pub N: PFlag, // Negative Flag
+    /// Carry Flag
+    pub C: PFlag,
+    /// Zero Flag
+    pub Z: PFlag,
+    /// Interupt Disable
+    pub I: PFlag,
+    /// Decimal Mode
+    pub D: PFlag,
+    /// Break Command
+    pub B: PFlag,
+    /// Overflow Flag
+    pub V: PFlag,
+    /// Negative Flag
+    pub N: PFlag,
 }
 
 impl std::fmt::Debug for Snapshot {
