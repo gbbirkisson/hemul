@@ -13,11 +13,18 @@ pub(crate) type PFlag = bool;
 
 pub(crate) const SP_PAGE: Byte = 0x01;
 pub(crate) const SP_ADDR: Byte = 0xFF;
-#[allow(dead_code)]
 pub(crate) const NMIB: Word = 0xFFFA; // + 0xFFFB
 pub(crate) const RESB: Word = 0xFFFC; // + 0xFFFD
-#[allow(dead_code)]
 pub(crate) const IRQB: Word = 0xFFFE; // + 0xFFFF
+
+/// Cpu mode
+pub enum Mode {
+    /// Each clock cycle executes a single instruction
+    Fast,
+
+    /// Each instruction takes as many clock cycles as the original 6502 used
+    Orginal(u8),
+}
 
 #[allow(non_snake_case, dead_code)]
 pub struct Cpu<T: Addressable> {
@@ -50,9 +57,8 @@ pub struct Cpu<T: Addressable> {
     /// Negative Flag
     N: PFlag,
 
-    /// How many ticks to ignore until we should execute next instruction. If this value is set to
-    /// none we never ignore any ticks
-    noop: Option<u8>,
+    /// The mode the Cpu runs in
+    mode: Mode,
 }
 
 #[derive(Debug)]
@@ -74,7 +80,6 @@ impl From<Error> for String {
     }
 }
 
-#[allow(dead_code)]
 impl<T> Cpu<T>
 where
     T: Addressable,
@@ -98,7 +103,7 @@ where
             V: false,
             N: false,
 
-            noop: None,
+            mode: Mode::Fast,
         }
     }
 
@@ -234,6 +239,12 @@ where
         self.N = status & 0b0000_0001 > 0;
     }
 
+    /// Set mode
+    #[allow(dead_code)]
+    fn mode_set(&mut self, mode: Mode) {
+        self.mode = mode;
+    }
+
     pub fn tick_until_nop(&mut self) -> Result<(), TickError> {
         let mut count = 0;
         loop {
@@ -295,9 +306,9 @@ where
     #[allow(clippy::too_many_lines)]
     fn tick(&mut self) -> Result<(), TickError> {
         // Burn cycles if we need to
-        if let Some(noop) = self.noop {
+        if let Mode::Orginal(noop) = self.mode {
             if noop > 0 {
-                self.noop = Some(noop - 1);
+                self.mode = Mode::Orginal(noop - 1);
                 return Ok(());
             }
         }
@@ -589,8 +600,8 @@ where
             (op, mode) => todo!("{:?}({:?})", op, mode),
         };
 
-        if self.noop.is_some() {
-            self.noop = Some(noop);
+        if let Mode::Orginal(_) = self.mode {
+            self.mode = Mode::Orginal(noop);
         }
 
         Ok(())
@@ -648,8 +659,8 @@ where
         // self.V = false; // *
         // self.N = false; // *
 
-        if self.noop.is_some() {
-            self.noop = Some(0);
+        if let Mode::Orginal(_) = self.mode {
+            self.mode = Mode::Orginal(0);
         }
 
         Ok(())
