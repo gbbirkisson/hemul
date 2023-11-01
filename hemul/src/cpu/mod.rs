@@ -50,8 +50,9 @@ pub struct Cpu<T: Addressable> {
     /// Negative Flag
     N: PFlag,
 
-    /// How many ticks to ignore until we should execute next instruction
-    noop: u8,
+    /// How many ticks to ignore until we should execute next instruction. If this value is set to
+    /// none we never ignore any ticks
+    noop: Option<u8>,
 }
 
 #[derive(Debug)]
@@ -97,7 +98,7 @@ where
             V: false,
             N: false,
 
-            noop: 0,
+            noop: None,
         }
     }
 
@@ -294,15 +295,14 @@ where
     #[allow(clippy::too_many_lines)]
     fn tick(&mut self) -> Result<(), TickError> {
         // Burn cycles if we need to
-        if self.noop != 0 {
-            self.noop -= 1;
-            return Ok(());
+        if let Some(noop) = self.noop {
+            if noop > 0 {
+                self.noop = Some(noop - 1);
+                return Ok(());
+            }
         }
 
-        dbg!(self.PC);
         let Op(op, mode, cycles) = self.fetch_op()?;
-        dbg!(&op);
-
         let mut noop = match cycles {
             Cycles::Constant(c) | Cycles::Page(c) | Cycles::Branch(c) => c,
         };
@@ -589,7 +589,9 @@ where
             (op, mode) => todo!("{:?}({:?})", op, mode),
         };
 
-        self.noop = noop;
+        if self.noop.is_some() {
+            self.noop = Some(noop);
+        }
 
         Ok(())
     }
@@ -646,7 +648,9 @@ where
         // self.V = false; // *
         // self.N = false; // *
 
-        self.noop = 0;
+        if self.noop.is_some() {
+            self.noop = Some(0);
+        }
 
         Ok(())
     }
