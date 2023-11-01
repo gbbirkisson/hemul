@@ -2,7 +2,6 @@ use std::{
     fs::File,
     io::prelude::*,
     ops::{Index, IndexMut},
-    path::Path,
     process::{Command, Stdio},
 };
 
@@ -75,10 +74,20 @@ impl From<String> for Memory {
 
 impl From<&str> for Memory {
     fn from(value: &str) -> Self {
-        let bin = if Path::new("../bin/vasm6502_oldstyle").exists() {
-            "../bin/vasm6502_oldstyle"
-        } else {
-            "vasm6502_oldstyle"
+        // Fallback to bin in repo
+        let bin = match Command::new("vasm6502_oldstyle")
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+        {
+            Ok(_) => "vasm6502_oldstyle",
+            Err(e) => {
+                if let std::io::ErrorKind::NotFound = e.kind() {
+                    "../bin/vasm6502_oldstyle"
+                } else {
+                    panic!("Failed running vasm6502_oldstyle");
+                }
+            }
         };
 
         // let child = Command::new("xa")

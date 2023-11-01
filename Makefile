@@ -5,7 +5,6 @@ dev: test lint
 .PHONY: test
 test:
 	@ which hexdump > /dev/null || (echo "hexdump is not installed" && false)
-	@ which vasm6502_oldstyle  > /dev/null || (echo "vasm6502_oldstyle is not installed" && false)
 	cargo test
 
 .PHONY: lint
