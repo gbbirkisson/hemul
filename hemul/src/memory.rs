@@ -2,6 +2,7 @@ use std::{
     fs::File,
     io::prelude::*,
     ops::{Index, IndexMut},
+    path::Path,
     process::{Command, Stdio},
 };
 
@@ -74,9 +75,15 @@ impl From<String> for Memory {
 
 impl From<&str> for Memory {
     fn from(value: &str) -> Self {
+        let bin = if Path::new("../bin/vasm6502_oldstyle").exists() {
+            "../bin/vasm6502_oldstyle"
+        } else {
+            "vasm6502_oldstyle"
+        };
+
         // let child = Command::new("xa")
         //     .args(["-o", "-", "/dev/stdin"])
-        let child = Command::new("vasm6502_oldstyle")
+        let child = Command::new(bin)
             .args([
                 "-Fbin",
                 "-dotdir",
