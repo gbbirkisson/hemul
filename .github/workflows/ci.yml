@@ -8,13 +8,35 @@ on:
 
 jobs:
   ci:
-    name: Run ${{ matrix.target }}
+    name: Lint
     runs-on: ubuntu-latest
 
-    strategy:
-      fail-fast: false
-      matrix:
-        target: [lint, test]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup caching
+        uses: Swatinem/rust-cache@v2
+
+      - name: "Set environment variables used by toolchain"
+        shell: bash
+        run: |
+          echo CARGO_TERM_COLOR=always >> $GITHUB_ENV
+          echo CARGO_INCREMENTAL=0 >> $GITHUB_ENV
+          echo RUST_BACKTRACE=1 >> $GITHUB_ENV
+
+      - name: "Install rust toolchain"
+        run: rustup show
+  
+      - name: Run linter
+        run: make lint
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    container:
+      image: xd009642/tarpaulin:0.27.1
+      options: --security-opt seccomp=unconfined
 
     steps:
       - name: Checkout
@@ -33,9 +55,13 @@ jobs:
       - name: "Install rust toolchain"
         run: rustup show
 
-      - name: Install assembler
-        if: matrix.target == 'test'
-        run: sudo apt-get install xa65 -y
-  
-      - name: Run ${{ matrix.target }}
-        run: make ${{ matrix.target }}
+      - name: "Install hexdump"
+        run: |
+          apt update && apt install bsdmainutils -y
+
+      - name: Run tests
+        run: |
+          cargo tarpaulin --verbose --all-features --workspace --timeout 120 --out xml
+
+      - name: Upload to codecov.io
+        uses: codecov/codecov-action@v2
