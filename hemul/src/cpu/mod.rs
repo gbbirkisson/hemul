@@ -360,23 +360,18 @@ where
             }
             (OpCode::Tax, _) => {
                 self.X = self.A;
-                flags_zn!(self, self.X);
             }
             (OpCode::Tay, _) => {
                 self.Y = self.A;
-                flags_zn!(self, self.Y);
             }
             (OpCode::Txa, _) => {
                 self.A = self.X;
-                flags_zn!(self, self.A);
             }
             (OpCode::Tya, _) => {
                 self.A = self.Y;
-                flags_zn!(self, self.A);
             }
             (OpCode::Tsx, _) => {
                 self.X = self.SP;
-                flags_zn!(self, self.X);
             }
             (OpCode::Txs, _) => {
                 self.SP = self.X;
