@@ -1,4 +1,4 @@
-<img align="right" width="128" src="logo.png">
+<img align="right" height="128" src="logo.png">
 
 <h1>hemul</h1>
 
