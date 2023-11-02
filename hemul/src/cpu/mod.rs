@@ -413,22 +413,22 @@ where
                 self.N = (data & 0b1000_0000) > 0;
             }
             (OpCode::Adc, mode) => {
-                // TODO
                 let addr = self.fetch_addr(&mode)?;
                 let data = self.read(addr)?;
-                let (data, carry1) = if self.C {
-                    data.overflowing_add(1)
-                } else {
-                    (data, false)
-                };
-                let (sum, carry2) = self.A.overflowing_add(data);
-                self.A = sum;
+                let (result1, carry1) = self.A.overflowing_add(data);
+                let (result2, carry2) = result1.overflowing_add(self.C as u8);
+                self.A = result2;
                 self.C = carry1 || carry2;
                 flags_zn!(self, self.A);
             }
-            (OpCode::Sbc, _mode) => {
-                // TODO
-                todo!()
+            (OpCode::Sbc, mode) => {
+                let addr = self.fetch_addr(&mode)?;
+                let data = self.read(addr)?;
+                let (result1, carry1) = self.A.overflowing_sub(data);
+                let (result2, carry2) = result1.overflowing_sub(!self.C as u8);
+                self.A = result2;
+                self.C = carry1 || carry2;
+                flags_zn!(self, self.A);
             }
             (OpCode::Cmp, mode) => {
                 compare!(self, A, mode);
@@ -469,37 +469,96 @@ where
                 self.Y = self.Y.wrapping_sub(1);
                 flags_zn!(self, self.Y);
             }
-            (OpCode::Asl, AddressMode::Accumulator) => {
-                // TODO
-                todo!()
+            (OpCode::Asl, mode) => {
+                let (addr, mut data) = if matches!(mode, AddressMode::Accumulator) {
+                    (None, self.A)
+                } else {
+                    let addr = self.fetch_addr(&mode)?;
+                    let data = self.read(addr)?;
+                    (Some(addr), data)
+                };
+
+                self.C = data & 0b1000_0000 > 0;
+                data = data << 1;
+
+                if let Some(addr) = addr {
+                    self.write(addr, data)?;
+                } else {
+                    self.A = data;
+                }
+
+                self.Z = self.A == 0;
+                self.N = data & 0b1000_0000 > 0;
             }
-            (OpCode::Asl, _mode) => {
-                // TODO
-                todo!()
+            (OpCode::Lsr, mode) => {
+                let (addr, mut data) = if matches!(mode, AddressMode::Accumulator) {
+                    (None, self.A)
+                } else {
+                    let addr = self.fetch_addr(&mode)?;
+                    let data = self.read(addr)?;
+                    (Some(addr), data)
+                };
+
+                self.C = data & 0b0000_0001 > 0;
+                data = data >> 1;
+
+                if let Some(addr) = addr {
+                    self.write(addr, data)?;
+                } else {
+                    self.A = data;
+                }
+
+                // flags_zn!(self, data); < Docs said this, and I dont believe it!
+                self.Z = self.A == 0;
+                self.N = data & 0b1000_0000 > 0;
             }
-            (OpCode::Lsr, AddressMode::Accumulator) => {
-                // TODO
-                todo!()
+            (OpCode::Rol, mode) => {
+                let (addr, mut data) = if matches!(mode, AddressMode::Accumulator) {
+                    (None, self.A)
+                } else {
+                    let addr = self.fetch_addr(&mode)?;
+                    let data = self.read(addr)?;
+                    (Some(addr), data)
+                };
+
+                let old_c = self.C;
+                self.C = data & 0b1000_0000 > 0;
+                data = data << 1;
+                data += old_c as u8;
+
+                if let Some(addr) = addr {
+                    self.write(addr, data)?;
+                } else {
+                    self.A = data;
+                }
+
+                self.Z = self.A == 0;
+                self.N = data & 0b1000_0000 > 0;
             }
-            (OpCode::Lsr, _mode) => {
-                // TODO
-                todo!()
-            }
-            (OpCode::Rol, AddressMode::Accumulator) => {
-                // TODO
-                todo!()
-            }
-            (OpCode::Rol, _mode) => {
-                // TODO
-                todo!()
-            }
-            (OpCode::Ror, AddressMode::Accumulator) => {
-                // TODO
-                todo!()
-            }
-            (OpCode::Ror, _mode) => {
-                // TODO
-                todo!()
+            (OpCode::Ror, mode) => {
+                let (addr, mut data) = if matches!(mode, AddressMode::Accumulator) {
+                    (None, self.A)
+                } else {
+                    let addr = self.fetch_addr(&mode)?;
+                    let data = self.read(addr)?;
+                    (Some(addr), data)
+                };
+
+                let old_c = self.C;
+                self.C = data & 0b0000_0001 > 0;
+                data = data >> 1;
+                if old_c {
+                    data = data & 0b0000_0001;
+                }
+
+                if let Some(addr) = addr {
+                    self.write(addr, data)?;
+                } else {
+                    self.A = data;
+                }
+
+                self.Z = self.A == 0;
+                self.N = data & 0b1000_0000 > 0;
             }
             (OpCode::Jmp, AddressMode::Absolute) => {
                 self.PC = self.fetch_word()?;
