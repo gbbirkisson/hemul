@@ -34,6 +34,9 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    container:
+      image: xd009642/tarpaulin:0.27.1
+      options: --security-opt seccomp=unconfined
 
     steps:
       - name: Checkout
@@ -53,9 +56,8 @@ jobs:
         run: rustup show
 
       - name: Run tests
-        uses: actions-rs/tarpaulin@v0.1.3
-        with:
-          version: 0.27.1
+        run: |
+          cargo tarpaulin --verbose --all-features --workspace --timeout 120 --out xml
 
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v2
