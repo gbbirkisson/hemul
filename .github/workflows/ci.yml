@@ -55,6 +55,10 @@ jobs:
       - name: "Install rust toolchain"
         run: rustup show
 
+      - name: "Install hexdump"
+        run: |
+          apt update && apt install bsdmainutils -y
+
       - name: Run tests
         run: |
           cargo tarpaulin --verbose --all-features --workspace --timeout 120 --out xml
