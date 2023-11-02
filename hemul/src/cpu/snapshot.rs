@@ -44,7 +44,7 @@ impl std::fmt::Debug for Snapshot {
         writeln!(f, "PC\t\tSP\tA\tX\tY\tCZIDBVN")?;
         write!(
             f,
-            "{:#01x}\t{:#01x}\t{:#01x}\t{:#01x}\t{:#01x}\t{}{}{}{}{}{}{}",
+            "{:#06x}\t{:#04x}\t{:#04x}\t{:#04x}\t{:#04x}\t{}{}{}{}{}{}{}",
             self.PC,
             self.SP,
             self.A,

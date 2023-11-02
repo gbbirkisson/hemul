@@ -162,15 +162,23 @@ where
                 self.PC += 1;
                 self.PC - 1
             }
-            AddressMode::ZeroPage => todo!(),
-            AddressMode::ZeroPageX => todo!(),
-            AddressMode::ZeroPageY => todo!(),
+            AddressMode::ZeroPage => Address::Zero(self.fetch()?).into(),
+            AddressMode::ZeroPageX => Address::Zero(self.fetch()?.wrapping_add(self.X)).into(),
+            AddressMode::ZeroPageY => Address::Zero(self.fetch()?.wrapping_add(self.Y)).into(),
             AddressMode::Absolute => self.fetch_word()?,
             AddressMode::AbsoluteX => self.fetch_word()? + u16::from(self.X),
             AddressMode::AbsoluteY => self.fetch_word()? + u16::from(self.Y),
             AddressMode::Indirect => todo!(),
-            AddressMode::IndexedIndirect => todo!(),
-            AddressMode::IndirectIndexed => todo!(),
+            AddressMode::IndexedIndirect => {
+                let zero_page_addr = self.fetch()?;
+                let addr_with_offset = zero_page_addr.wrapping_add(self.X);
+                self.read_word(addr_with_offset)?
+            }
+            AddressMode::IndirectIndexed => {
+                let zero_page_addr = self.fetch()?;
+                let target_addr = self.read_word(Address::Zero(zero_page_addr))?;
+                target_addr + self.Y as Word
+            }
         })
     }
 
@@ -313,7 +321,7 @@ where
             }
         }
 
-        let Op(op, mode, cycles) = self.fetch_op()?;
+        let Op(op, mode, cycles) = dbg!(self.fetch_op()?);
         let mut noop = match cycles {
             Cycles::Constant(c) | Cycles::Page(c) | Cycles::Branch(c) => c,
         };
@@ -577,7 +585,7 @@ where
             }
             (OpCode::Sed, _) => {
                 self.D = true;
-                panic!("Decimal Mode not supported");
+                return Err("Decimal Mode not supported".to_string());
             }
             (OpCode::Sei, _) => {
                 self.I = true;
