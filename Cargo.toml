@@ -1,4 +1,4 @@
 [workspace]
 resolver = "2"
 
-members = ["hemul", "hemul-vm"]
+members = ["hemul", "hemul-cli"]
