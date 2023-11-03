@@ -177,7 +177,7 @@ where
             AddressMode::IndirectIndexed => {
                 let zero_page_addr = self.fetch()?;
                 let target_addr = self.read_word(Address::Zero(zero_page_addr))?;
-                target_addr + self.Y as Word
+                target_addr + u16::from(self.Y)
             }
         })
     }
@@ -311,7 +311,7 @@ impl<T> Tickable for Cpu<T>
 where
     T: Addressable,
 {
-    #[allow(clippy::too_many_lines)]
+    #[allow(clippy::too_many_lines, clippy::cognitive_complexity)]
     fn tick(&mut self) -> Result<(), TickError> {
         // Burn cycles if we need to
         if let Mode::Orginal(noop) = self.mode {
@@ -416,7 +416,7 @@ where
                 let addr = self.fetch_addr(&mode)?;
                 let data = self.read(addr)?;
                 let (result1, carry1) = self.A.overflowing_add(data);
-                let (result2, carry2) = result1.overflowing_add(self.C as u8);
+                let (result2, carry2) = result1.overflowing_add(u8::from(self.C));
                 self.A = result2;
                 self.C = carry1 || carry2;
                 flags_zn!(self, self.A);
@@ -425,7 +425,7 @@ where
                 let addr = self.fetch_addr(&mode)?;
                 let data = self.read(addr)?;
                 let (result1, carry1) = self.A.overflowing_sub(data);
-                let (result2, carry2) = result1.overflowing_sub(!self.C as u8);
+                let (result2, carry2) = result1.overflowing_sub(u8::from(!self.C));
                 self.A = result2;
                 self.C = carry1 || carry2;
                 flags_zn!(self, self.A);
@@ -479,7 +479,7 @@ where
                 };
 
                 self.C = data & 0b1000_0000 > 0;
-                data = data << 1;
+                data <<= 1;
 
                 if let Some(addr) = addr {
                     self.write(addr, data)?;
@@ -500,7 +500,7 @@ where
                 };
 
                 self.C = data & 0b0000_0001 > 0;
-                data = data >> 1;
+                data >>= 1;
 
                 if let Some(addr) = addr {
                     self.write(addr, data)?;
@@ -523,8 +523,8 @@ where
 
                 let old_c = self.C;
                 self.C = data & 0b1000_0000 > 0;
-                data = data << 1;
-                data += old_c as u8;
+                data <<= 1;
+                data += u8::from(old_c);
 
                 if let Some(addr) = addr {
                     self.write(addr, data)?;
@@ -546,9 +546,9 @@ where
 
                 let old_c = self.C;
                 self.C = data & 0b0000_0001 > 0;
-                data = data >> 1;
+                data >>= 1;
                 if old_c {
-                    data = data & 0b0000_0001;
+                    data &= 0b0000_0001;
                 }
 
                 if let Some(addr) = addr {
