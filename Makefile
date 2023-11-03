@@ -24,7 +24,7 @@ lint-fmt:
 
 .PHONY: lint-clippy
 lint-clippy:
-	cargo clippy -- --no-deps $(CLIPPY_ARGS)
+	cargo clippy -- -D warnings --no-deps $(CLIPPY_ARGS)
 
 .PHONY: fix
 fix: fix-clippy fix-fmt

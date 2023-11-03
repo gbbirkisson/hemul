@@ -7,12 +7,12 @@
 [![codecov](https://codecov.io/github/gbbirkisson/hemul/branch/main/graph/badge.svg?token=GFZ3Y0Y2X6)](https://codecov.io/github/gbbirkisson/hemul)
 [![GitHub](https://img.shields.io/github/license/gbbirkisson/hemul)](https://github.com/gbbirkisson/hemul/blob/main/LICENSE)
 
-Emulation of the 6502 micro processor, because why not 🤷
+Emulation of the 6502 micro processor, because why not 🤷 The project is named h[emu]l after the "Hemul" from "Moomin" francise.
 
 <!-- vim-markdown-toc GFM -->
 
 * [Requirements](#requirements)
-* [Running the VM](#running-the-vm)
+* [Running the emulator](#running-the-emulator)
 * [Resources](#resources)
 
 <!-- vim-markdown-toc -->
@@ -24,12 +24,12 @@ You will need these binaries in your path to do testing:
 - [vasm6502_oldstyle](http://www.compilers.de/vasm.html)
 - [hexdump](https://man7.org/linux/man-pages/man1/hexdump.1.html)
 
-## Running the VM
+## Running the emulator
 
 With assemly code:
 
 ```console
-$ cat << EOF | cargo run -p hemul-vm -- -b - -a
+$ cat << EOF | cargo run -p hemul-cli -- -b - -a
     ; 1 + 2
     LDA     #01
     ADC     #02
