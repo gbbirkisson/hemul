@@ -1,14 +1,12 @@
-use hemul::{cpu::snapshot::Snapshot, Byte};
+// Testing of load and store operations
+
 use proptest::prelude::*;
+use utils::*;
 
 extern crate hemul;
 
 #[path = "utils.rs"]
 mod utils;
-
-fn registers() -> impl Strategy<Value = &'static str> {
-    prop_oneof![Just("A"), Just("X"), Just("Y"),]
-}
 
 fn zn_tests() -> impl Strategy<Value = (u8, bool, bool)> {
     prop_oneof![
@@ -17,19 +15,6 @@ fn zn_tests() -> impl Strategy<Value = (u8, bool, bool)> {
         Just((0x7F, false, false)),
         Just((0xFF, false, true)),
     ]
-}
-
-fn register_value(register: &str, snapshot: &Snapshot) -> Byte {
-    match register {
-        "A" => snapshot.A,
-        "X" => snapshot.X,
-        "Y" => snapshot.Y,
-        _ => panic!("Invalid register"),
-    }
-}
-
-fn as_hex(n: u8) -> String {
-    format!("{:#06x}", n).replace("0x", "")
 }
 
 proptest! {

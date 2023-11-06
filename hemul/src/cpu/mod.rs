@@ -11,11 +11,11 @@ pub mod snapshot;
 
 pub(crate) type PFlag = bool;
 
-pub(crate) const SP_PAGE: Byte = 0x01;
-pub(crate) const SP_ADDR: Byte = 0xFF;
-pub(crate) const NMIB: Word = 0xFFFA; // + 0xFFFB
-pub(crate) const RESB: Word = 0xFFFC; // + 0xFFFD
-pub(crate) const IRQB: Word = 0xFFFE; // + 0xFFFF
+pub const SP_PAGE: Byte = 0x01;
+pub const SP_ADDR: Byte = 0xFF;
+pub const NMIB: Word = 0xFFFA; // + 0xFFFB
+pub const RESB: Word = 0xFFFC; // + 0xFFFD
+pub const IRQB: Word = 0xFFFE; // + 0xFFFF
 
 /// Cpu mode
 pub enum Mode {
@@ -360,18 +360,23 @@ where
             }
             (OpCode::Tax, _) => {
                 self.X = self.A;
+                flags_zn!(self, self.X);
             }
             (OpCode::Tay, _) => {
                 self.Y = self.A;
+                flags_zn!(self, self.Y);
             }
             (OpCode::Txa, _) => {
                 self.A = self.X;
+                flags_zn!(self, self.A);
             }
             (OpCode::Tya, _) => {
                 self.A = self.Y;
+                flags_zn!(self, self.Y);
             }
             (OpCode::Tsx, _) => {
                 self.X = self.SP;
+                flags_zn!(self, self.X);
             }
             (OpCode::Txs, _) => {
                 self.SP = self.X;
@@ -715,9 +720,9 @@ where
         // * => Set by software?
         // self.C = false; // *
         // self.Z = false; // *
-        self.I = true;
+        self.I = false;
         self.D = false;
-        self.B = true;
+        self.B = false;
         // self.V = false; // *
         // self.N = false; // *
 
