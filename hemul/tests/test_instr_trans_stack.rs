@@ -10,7 +10,7 @@ mod utils;
 
 proptest! {
     #[test]
-    fn test_trans_a_to_r(reg in registers()) {
+    fn test_instr_trans_a_to_r(reg in registers()) {
         prop_assume!(reg != "A");
 
         let snapshot = asm_test!(
@@ -30,7 +30,7 @@ proptest! {
 
 
     #[test]
-    fn test_trans_r_to_a(reg in registers()) {
+    fn test_instr_trans_r_to_a(reg in registers()) {
         prop_assume!(reg != "A");
 
         let snapshot = asm_test!(
@@ -51,7 +51,7 @@ proptest! {
 }
 
 #[test]
-fn test_trans_s_to_x() {
+fn test_instr_trans_s_to_x() {
     let snapshot = asm_test!(
         r#"
         ;;
@@ -63,7 +63,7 @@ fn test_trans_s_to_x() {
 }
 
 #[test]
-fn test_trans_x_to_s() {
+fn test_instr_trans_x_to_s() {
     let snapshot = asm_test!(
         r#"
         ;;
@@ -76,7 +76,7 @@ fn test_trans_x_to_s() {
 }
 
 #[test]
-fn test_stack_push_a() {
+fn test_instr_stack_push_a() {
     let snapshot = asm_test!(
         r#"
         ;;
@@ -89,7 +89,7 @@ fn test_stack_push_a() {
 }
 
 #[test]
-fn test_stack_push_s() {
+fn test_instr_stack_push_s() {
     let snapshot = asm_test!(
         r#"
         ;;
@@ -103,7 +103,7 @@ fn test_stack_push_s() {
 }
 
 #[test]
-fn test_stack_pull_a() {
+fn test_instr_stack_pull_a() {
     let snapshot = asm_test!(
         r#"
         ;;
@@ -117,7 +117,7 @@ fn test_stack_pull_a() {
 }
 
 #[test]
-fn test_stack_pull_s() {
+fn test_instr_stack_pull_s() {
     let snapshot = asm_test!(
         r#"
         ;;

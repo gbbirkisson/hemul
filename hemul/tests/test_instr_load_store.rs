@@ -19,7 +19,7 @@ fn zn_tests() -> impl Strategy<Value = (u8, bool, bool)> {
 
 proptest! {
     #[test]
-    fn test_load_immediate(reg in registers(), (val, z, n) in zn_tests()) {
+    fn test_instr_load_immediate(reg in registers(), (val, z, n) in zn_tests()) {
         let snapshot = asm_test!(
             format!(
                 r#"
@@ -37,7 +37,7 @@ proptest! {
     }
 
     #[test]
-    fn test_load_zero_page(reg in registers(), (val, z, n) in zn_tests()) {
+    fn test_instr_load_zero_page(reg in registers(), (val, z, n) in zn_tests()) {
         let snapshot = asm_test!(
             format!(
                 r#"
@@ -57,7 +57,7 @@ proptest! {
     }
 
     #[test]
-    fn test_load_zero_page_x(reg in registers(), (val, z, n) in zn_tests()) {
+    fn test_instr_load_zero_page_x(reg in registers(), (val, z, n) in zn_tests()) {
         prop_assume!(reg != "X");
 
         let snapshot = asm_test!(
@@ -80,7 +80,7 @@ proptest! {
     }
 
     #[test]
-    fn test_load_zero_page_y((val, z, n) in zn_tests()) {
+    fn test_instr_load_zero_page_y((val, z, n) in zn_tests()) {
         let snapshot = asm_test!(
             format!(
                 r#"
@@ -100,7 +100,7 @@ proptest! {
     }
 
     #[test]
-    fn test_load_absolute(reg in registers(), (val, z, n) in zn_tests()) {
+    fn test_instr_load_absolute(reg in registers(), (val, z, n) in zn_tests()) {
         let snapshot = asm_test!(
             format!(
                 r#"
@@ -120,7 +120,7 @@ proptest! {
     }
 
     #[test]
-    fn test_load_absolute_x(reg in registers(), (val, z, n) in zn_tests()) {
+    fn test_instr_load_absolute_x(reg in registers(), (val, z, n) in zn_tests()) {
         prop_assume!(reg != "X");
 
         let snapshot = asm_test!(
@@ -143,7 +143,7 @@ proptest! {
     }
 
     #[test]
-    fn test_load_absolute_y(reg in registers(), (val, z, n) in zn_tests()) {
+    fn test_instr_load_absolute_y(reg in registers(), (val, z, n) in zn_tests()) {
         prop_assume!(reg != "Y");
 
         let snapshot = asm_test!(
@@ -166,7 +166,7 @@ proptest! {
     }
 
     #[test]
-    fn test_load_indexed_indirect((val, z, n) in zn_tests()) {
+    fn test_instr_load_indexed_indirect((val, z, n) in zn_tests()) {
         let snapshot = asm_test!(
             format!(
                 r#"
@@ -187,7 +187,7 @@ proptest! {
     }
 
     #[test]
-    fn test_load_indirect_indexed((val, z, n) in zn_tests()) {
+    fn test_instr_load_indirect_indexed((val, z, n) in zn_tests()) {
         let snapshot = asm_test!(
             format!(
                 r#"
@@ -209,7 +209,7 @@ proptest! {
     }
 
     #[test]
-    fn test_store_zero_page(reg in registers()) {
+    fn test_instr_store_zero_page(reg in registers()) {
         let snapshot = asm_test!(
             format!(
                 r#"
@@ -226,7 +226,7 @@ proptest! {
     }
 
     #[test]
-    fn test_store_zero_page_x(reg in registers()) {
+    fn test_instr_store_zero_page_x(reg in registers()) {
         prop_assume!(reg != "X");
 
         let snapshot = asm_test!(
@@ -246,7 +246,7 @@ proptest! {
     }
 
     #[test]
-    fn test_store_zero_page_y(reg in registers()) {
+    fn test_instr_store_zero_page_y(reg in registers()) {
         prop_assume!(reg == "X");
 
         let snapshot = asm_test!(
@@ -264,7 +264,7 @@ proptest! {
     }
 
     #[test]
-    fn test_store_absolute(reg in registers()) {
+    fn test_instr_store_absolute(reg in registers()) {
         let snapshot = asm_test!(
             format!(
                 r#"
@@ -281,7 +281,7 @@ proptest! {
     }
 
     #[test]
-    fn test_store_absolute_xy(reg in registers()) {
+    fn test_instr_store_absolute_xy(reg in registers()) {
         prop_assume!(reg != "A");
         let snapshot = asm_test!(
             format!(
@@ -300,7 +300,7 @@ proptest! {
     }
 
     #[test]
-    fn test_store_indexed_indirect(reg in registers()) {
+    fn test_instr_store_indexed_indirect(reg in registers()) {
         prop_assume!(reg == "A");
         let snapshot = asm_test!(
                 r#"
@@ -317,7 +317,7 @@ proptest! {
     }
 
     #[test]
-    fn test_store_indirect_indexed(reg in registers()) {
+    fn test_instr_store_indirect_indexed(reg in registers()) {
         prop_assume!(reg == "A");
         let snapshot = asm_test!(
                 r#"
