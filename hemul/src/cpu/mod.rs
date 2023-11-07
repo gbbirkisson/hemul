@@ -245,6 +245,8 @@ where
         self.B = status & 0b0000_0100 > 0;
         self.V = status & 0b0000_0010 > 0;
         self.N = status & 0b0000_0001 > 0;
+
+        assert!(!self.D, "Decimal Mode not supported");
     }
 
     /// Set mode

@@ -124,13 +124,13 @@ fn test_instr_stack_pull_s() {
     PLP
     NOP
     .org    $0100
-    .word   $FFFF
+    .word   $F7
         "#
     );
     assert!(snapshot.C);
     assert!(snapshot.Z);
     assert!(snapshot.I);
-    assert!(snapshot.D);
+    assert!(!snapshot.D);
     assert!(snapshot.B);
     assert!(snapshot.V);
     assert!(snapshot.N);
