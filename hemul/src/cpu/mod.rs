@@ -493,7 +493,7 @@ where
                     self.A = data;
                 }
 
-                self.Z = self.A == 0;
+                self.Z = data == 0;
                 self.N = data & 0b1000_0000 > 0;
             }
             (OpCode::Lsr, mode) => {
@@ -515,7 +515,7 @@ where
                 }
 
                 // flags_zn!(self, data); < Docs said this, and I dont believe it!
-                self.Z = self.A == 0;
+                self.Z = data == 0;
                 self.N = data & 0b1000_0000 > 0;
             }
             (OpCode::Rol, mode) => {
@@ -538,7 +538,7 @@ where
                     self.A = data;
                 }
 
-                self.Z = self.A == 0;
+                self.Z = data == 0;
                 self.N = data & 0b1000_0000 > 0;
             }
             (OpCode::Ror, mode) => {
@@ -554,7 +554,7 @@ where
                 self.C = data & 0b0000_0001 > 0;
                 data >>= 1;
                 if old_c {
-                    data &= 0b0000_0001;
+                    data |= 0b1000_0000;
                 }
 
                 if let Some(addr) = addr {
@@ -563,7 +563,7 @@ where
                     self.A = data;
                 }
 
-                self.Z = self.A == 0;
+                self.Z = data == 0;
                 self.N = data & 0b1000_0000 > 0;
             }
             (OpCode::Jmp, AddressMode::Absolute) => {
