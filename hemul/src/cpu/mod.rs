@@ -322,7 +322,7 @@ where
             }
         }
 
-        let Op(op, mode, cycles) = self.fetch_op()?;
+        let Op(op, mode, cycles) = dbg!(self.fetch_op()?);
         let mut noop = match cycles {
             Cycles::Constant(c) | Cycles::Page(c) | Cycles::Branch(c) => c,
         };

@@ -1,4 +1,4 @@
-// Testing of logical operations
+// Testing of shift operations
 
 use proptest::prelude::*;
 use utils::*;
