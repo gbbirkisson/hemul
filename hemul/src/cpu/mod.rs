@@ -414,8 +414,8 @@ where
                 let addr = self.fetch_addr(&mode)?;
                 let data = self.read(addr)?;
                 self.Z = (data & self.A) == 0;
-                self.V = (data & 0b0100_0000) > 0;
                 self.N = (data & 0b1000_0000) > 0;
+                self.V = (data & 0b0100_0000) > 0;
             }
             (OpCode::Adc, mode) => {
                 let addr = self.fetch_addr(&mode)?;

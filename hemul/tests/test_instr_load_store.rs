@@ -1,4 +1,4 @@
-// Testing of load and store operations
+// Testing of load and store operations. Here we also test access modes extensively
 
 use proptest::prelude::*;
 use utils::*;
