@@ -288,9 +288,10 @@ macro_rules! compare {
     ($self:ident, $r:ident, $mode:ident) => {
         let addr = $self.fetch_addr(&$mode)?;
         let data = $self.read(addr)?;
+        let res = $self.$r.wrapping_sub(data);
         $self.C = $self.$r >= data;
         $self.Z = $self.$r == data;
-        $self.N = (data & 0b1000_0000) > 0;
+        $self.N = (res & 0b1000_0000) > 0;
     };
 }
 
@@ -321,7 +322,7 @@ where
             }
         }
 
-        let Op(op, mode, cycles) = dbg!(self.fetch_op()?);
+        let Op(op, mode, cycles) = self.fetch_op()?;
         let mut noop = match cycles {
             Cycles::Constant(c) | Cycles::Page(c) | Cycles::Branch(c) => c,
         };
@@ -432,7 +433,7 @@ where
                 let (result1, carry1) = self.A.overflowing_sub(data);
                 let (result2, carry2) = result1.overflowing_sub(u8::from(!self.C));
                 self.A = result2;
-                self.C = carry1 || carry2;
+                self.C = !(carry1 || carry2);
                 flags_zn!(self, self.A);
             }
             (OpCode::Cmp, mode) => {
