@@ -7,7 +7,7 @@
 [![codecov](https://codecov.io/github/gbbirkisson/hemul/branch/main/graph/badge.svg?token=GFZ3Y0Y2X6)](https://codecov.io/github/gbbirkisson/hemul)
 [![GitHub](https://img.shields.io/github/license/gbbirkisson/hemul)](https://github.com/gbbirkisson/hemul/blob/main/LICENSE)
 
-Emulation of the 6502 micro processor, because why not 🤷 The project is named h[emu]l after the "Hemul" from "Moomin" francise.
+Emulation of the 6502 micro processor, because why not 🤷 The project is named h[emu]l after the "Hemul" from the "Moomin" francise.
 
 <!-- vim-markdown-toc GFM -->
 
