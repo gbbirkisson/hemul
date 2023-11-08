@@ -11,11 +11,11 @@ pub mod snapshot;
 
 pub(crate) type PFlag = bool;
 
-pub(crate) const SP_PAGE: Byte = 0x01;
-pub(crate) const SP_ADDR: Byte = 0xFF;
-pub(crate) const NMIB: Word = 0xFFFA; // + 0xFFFB
-pub(crate) const RESB: Word = 0xFFFC; // + 0xFFFD
-pub(crate) const IRQB: Word = 0xFFFE; // + 0xFFFF
+pub const SP_PAGE: Byte = 0x01;
+pub const SP_ADDR: Byte = 0xFF;
+pub const NMIB: Word = 0xFFFA; // + 0xFFFB
+pub const RESB: Word = 0xFFFC; // + 0xFFFD
+pub const IRQB: Word = 0xFFFE; // + 0xFFFF
 
 /// Cpu mode
 pub enum Mode {
@@ -245,6 +245,8 @@ where
         self.B = status & 0b0000_0100 > 0;
         self.V = status & 0b0000_0010 > 0;
         self.N = status & 0b0000_0001 > 0;
+
+        assert!(!self.D, "Decimal Mode not supported");
     }
 
     /// Set mode
@@ -288,9 +290,10 @@ macro_rules! compare {
     ($self:ident, $r:ident, $mode:ident) => {
         let addr = $self.fetch_addr(&$mode)?;
         let data = $self.read(addr)?;
+        let res = $self.$r.wrapping_sub(data);
         $self.C = $self.$r >= data;
         $self.Z = $self.$r == data;
-        $self.N = (data & 0b1000_0000) > 0;
+        $self.N = (res & 0b1000_0000) > 0;
     };
 }
 
@@ -360,18 +363,23 @@ where
             }
             (OpCode::Tax, _) => {
                 self.X = self.A;
+                flags_zn!(self, self.X);
             }
             (OpCode::Tay, _) => {
                 self.Y = self.A;
+                flags_zn!(self, self.Y);
             }
             (OpCode::Txa, _) => {
                 self.A = self.X;
+                flags_zn!(self, self.A);
             }
             (OpCode::Tya, _) => {
                 self.A = self.Y;
+                flags_zn!(self, self.Y);
             }
             (OpCode::Tsx, _) => {
                 self.X = self.SP;
+                flags_zn!(self, self.X);
             }
             (OpCode::Txs, _) => {
                 self.SP = self.X;
@@ -409,8 +417,8 @@ where
                 let addr = self.fetch_addr(&mode)?;
                 let data = self.read(addr)?;
                 self.Z = (data & self.A) == 0;
-                self.V = (data & 0b0100_0000) > 0;
                 self.N = (data & 0b1000_0000) > 0;
+                self.V = (data & 0b0100_0000) > 0;
             }
             (OpCode::Adc, mode) => {
                 let addr = self.fetch_addr(&mode)?;
@@ -427,7 +435,7 @@ where
                 let (result1, carry1) = self.A.overflowing_sub(data);
                 let (result2, carry2) = result1.overflowing_sub(u8::from(!self.C));
                 self.A = result2;
-                self.C = carry1 || carry2;
+                self.C = !(carry1 || carry2);
                 flags_zn!(self, self.A);
             }
             (OpCode::Cmp, mode) => {
@@ -487,7 +495,7 @@ where
                     self.A = data;
                 }
 
-                self.Z = self.A == 0;
+                self.Z = data == 0;
                 self.N = data & 0b1000_0000 > 0;
             }
             (OpCode::Lsr, mode) => {
@@ -509,7 +517,7 @@ where
                 }
 
                 // flags_zn!(self, data); < Docs said this, and I dont believe it!
-                self.Z = self.A == 0;
+                self.Z = data == 0;
                 self.N = data & 0b1000_0000 > 0;
             }
             (OpCode::Rol, mode) => {
@@ -532,7 +540,7 @@ where
                     self.A = data;
                 }
 
-                self.Z = self.A == 0;
+                self.Z = data == 0;
                 self.N = data & 0b1000_0000 > 0;
             }
             (OpCode::Ror, mode) => {
@@ -548,7 +556,7 @@ where
                 self.C = data & 0b0000_0001 > 0;
                 data >>= 1;
                 if old_c {
-                    data &= 0b0000_0001;
+                    data |= 0b1000_0000;
                 }
 
                 if let Some(addr) = addr {
@@ -557,7 +565,7 @@ where
                     self.A = data;
                 }
 
-                self.Z = self.A == 0;
+                self.Z = data == 0;
                 self.N = data & 0b1000_0000 > 0;
             }
             (OpCode::Jmp, AddressMode::Absolute) => {
@@ -715,9 +723,9 @@ where
         // * => Set by software?
         // self.C = false; // *
         // self.Z = false; // *
-        self.I = true;
+        self.I = false;
         self.D = false;
-        self.B = true;
+        self.B = false;
         // self.V = false; // *
         // self.N = false; // *
 
