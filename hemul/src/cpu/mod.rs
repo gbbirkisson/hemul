@@ -1,9 +1,12 @@
+use std::error::Error;
+
 use self::{
     address::Address,
     instructions::{AddressMode, Cycles, OpCode},
 };
-use crate::{Addressable, Byte, InteruptError, Interuptable, Resetable, TickError, Tickable, Word};
+use crate::{Addressable, Byte, Interuptable, Resettable, Tickable, Word};
 use instructions::Op;
+use thiserror::Error;
 
 pub(crate) mod address;
 mod instructions;
@@ -23,7 +26,7 @@ pub enum Mode {
     Fast,
 
     /// Each instruction takes as many clock cycles as the original 6502 used
-    Orginal(u8),
+    Original(u8),
 }
 
 #[allow(non_snake_case, dead_code)]
@@ -46,7 +49,7 @@ pub struct Cpu<T: Addressable> {
     C: PFlag,
     /// Zero Flag
     Z: PFlag,
-    /// Interupt Disable
+    /// Interrupt Disable
     I: PFlag,
     /// Decimal Mode
     D: PFlag,
@@ -61,23 +64,17 @@ pub struct Cpu<T: Addressable> {
     mode: Mode,
 }
 
-#[derive(Debug)]
-pub enum Error {
+#[allow(clippy::module_name_repetitions)]
+#[derive(Error, Debug)]
+pub enum CpuError {
+    #[error("invalid opcode `{0:#04x}`")]
     BadOpCode(Byte),
-    OutOfBounds(Word),
-    StackOverflow,
-    Other(String),
-}
 
-impl From<Error> for String {
-    fn from(value: Error) -> Self {
-        match value {
-            Error::BadOpCode(code) => format!("BadOpCode: {code:#04x}"),
-            Error::OutOfBounds(addr) => format!("OutOfBounds: {addr:#06x}"),
-            Error::StackOverflow => "StackOverflow".to_string(),
-            Error::Other(msg) => format!("Other: {msg}"),
-        }
-    }
+    #[error("memory location out of bounds `{0:#06x}`")]
+    OutOfBounds(Word),
+
+    #[error("invalid address mode")]
+    InvalidAddressMode,
 }
 
 impl<T> Cpu<T>
@@ -108,17 +105,17 @@ where
     }
 
     /// Read byte from address
-    fn read(&self, addr: impl Into<Word>) -> Result<Byte, Error> {
+    fn read(&self, addr: impl Into<Word>) -> Result<Byte, CpuError> {
         let addr = addr.into();
         if self.addr.inside_bounds(addr) {
             Ok(self.addr[addr])
         } else {
-            Err(Error::OutOfBounds(addr))
+            Err(CpuError::OutOfBounds(addr))
         }
     }
 
     /// Read a word from address and address + 1
-    fn read_word(&self, addr: impl Into<Word>) -> Result<Word, Error> {
+    fn read_word(&self, addr: impl Into<Word>) -> Result<Word, CpuError> {
         let a1 = addr.into();
         let a2 = a1 + 1;
         let addr = self.read(a1)?;
@@ -127,36 +124,36 @@ where
     }
 
     /// Fetch byte from memory that the PC points to and increment the PC
-    fn fetch(&mut self) -> Result<Byte, Error> {
+    fn fetch(&mut self) -> Result<Byte, CpuError> {
         let data = self.read(self.PC)?;
         self.PC += 1;
         Ok(data)
     }
 
     /// Fetch word from memory that the PC points to and increment the PC twice
-    fn fetch_word(&mut self) -> Result<Word, Error> {
+    fn fetch_word(&mut self) -> Result<Word, CpuError> {
         let data = self.read_word(self.PC)?;
         self.PC += 2;
         Ok(data)
     }
 
     /// Read next op from memory without changing the PC
-    fn read_op(&self) -> Result<Op, Error> {
+    fn read_op(&self) -> Result<Op, CpuError> {
         self.read(self.PC)?.try_into()
     }
 
     /// Fetch op from memory that the PC points to and increment the PC
-    fn fetch_op(&mut self) -> Result<Op, Error> {
+    fn fetch_op(&mut self) -> Result<Op, CpuError> {
         let op = self.read_op()?;
         self.PC += 1;
         Ok(op)
     }
 
     /// Fetch memory address that is referenced by some address mode
-    fn fetch_addr(&mut self, mode: &AddressMode) -> Result<Word, Error> {
+    fn fetch_addr(&mut self, mode: &AddressMode) -> Result<Word, CpuError> {
         Ok(match mode {
             AddressMode::Accumulator | AddressMode::Relative | AddressMode::Implicit => {
-                return Err(Error::Other("Mode not supported".to_string()));
+                return Err(CpuError::InvalidAddressMode);
             }
             AddressMode::Immediate => {
                 self.PC += 1;
@@ -183,18 +180,18 @@ where
     }
 
     /// Write byte to address
-    fn write(&mut self, addr: impl Into<Word>, value: impl Into<Byte>) -> Result<(), Error> {
+    fn write(&mut self, addr: impl Into<Word>, value: impl Into<Byte>) -> Result<(), CpuError> {
         let addr = addr.into();
         if self.addr.inside_bounds(addr) {
             self.addr[addr] = value.into();
             Ok(())
         } else {
-            Err(Error::OutOfBounds(addr))
+            Err(CpuError::OutOfBounds(addr))
         }
     }
 
     /// Push byte onto the stack
-    fn stack_push(&mut self, byte: impl Into<Byte>) -> Result<(), Error> {
+    fn stack_push(&mut self, byte: impl Into<Byte>) -> Result<(), CpuError> {
         let addr = Address::from((self.SP, SP_PAGE));
         self.write(addr, byte.into())?;
         self.SP = self.SP.wrapping_sub(1);
@@ -202,7 +199,7 @@ where
     }
 
     /// Pop byte from the stack
-    fn stack_pop(&mut self) -> Result<Byte, Error> {
+    fn stack_pop(&mut self) -> Result<Byte, CpuError> {
         self.SP = self.SP.wrapping_add(1);
         let addr = Address::from((self.SP, SP_PAGE));
         let data = self.read(addr)?;
@@ -255,7 +252,7 @@ where
         self.mode = mode;
     }
 
-    pub fn tick_until_nop(&mut self) -> Result<(), TickError> {
+    pub fn tick_until_nop(&mut self) -> Result<(), Box<dyn Error>> {
         let mut count = 0;
         loop {
             if matches!(self.read_op()?, Op(OpCode::Nop, _, _)) {
@@ -264,14 +261,14 @@ where
 
             count += 1;
             if count > 2000 {
-                return Err("Endless Loop".to_string());
+                return Err("endless Loop".into());
             }
 
             self.tick()?;
         }
     }
 
-    pub fn tick_for(&mut self, count: usize) -> Result<(), TickError> {
+    pub fn tick_for(&mut self, count: usize) -> Result<(), Box<dyn Error>> {
         for _ in 0..count {
             self.tick()?;
         }
@@ -302,7 +299,8 @@ macro_rules! branch {
         let offset = $self.fetch()?;
         if $cond {
             $self.PC = u16::try_from(i32::from($self.PC) + i32::from(offset))
-                .map_err(|_| Error::Other("Failed to calculate offset".to_string()))?;
+                .map_err(|e| format!("failed to calculate offset: {e}"))?;
+
             true
         } else {
             false
@@ -315,11 +313,11 @@ where
     T: Addressable,
 {
     #[allow(clippy::too_many_lines, clippy::cognitive_complexity)]
-    fn tick(&mut self) -> Result<(), TickError> {
+    fn tick(&mut self) -> Result<(), Box<dyn Error>> {
         // Burn cycles if we need to
-        if let Mode::Orginal(noop) = self.mode {
+        if let Mode::Original(noop) = self.mode {
             if noop > 0 {
-                self.mode = Mode::Orginal(noop - 1);
+                self.mode = Mode::Original(noop - 1);
                 return Ok(());
             }
         }
@@ -578,7 +576,7 @@ where
             (OpCode::Jsr, _) => {
                 let new_pc = self.fetch_word()?;
                 let Address::Full(addr, page) = Address::from(self.PC - 1) else {
-                    return Err("Could not construct address from PC".to_string());
+                    return Err("could not construct address from PC".into());
                 };
                 self.stack_push(page)?;
                 self.stack_push(addr)?;
@@ -647,13 +645,13 @@ where
             }
             (OpCode::Sed, _) => {
                 self.D = true;
-                return Err("Decimal Mode not supported".to_string());
+                return Err("decimal Mode not supported".into());
             }
             (OpCode::Sei, _) => {
                 self.I = true;
             }
             (OpCode::Brk, _) => {
-                self.interupt(0)?;
+                self.interrupt(0)?;
             }
             (OpCode::Rti, _) => {
                 self.I = false;
@@ -670,8 +668,8 @@ where
             (op, mode) => todo!("{:?}({:?})", op, mode),
         };
 
-        if let Mode::Orginal(_) = self.mode {
-            self.mode = Mode::Orginal(noop);
+        if let Mode::Original(_) = self.mode {
+            self.mode = Mode::Original(noop);
         }
 
         Ok(())
@@ -682,7 +680,10 @@ impl<T> Interuptable for Cpu<T>
 where
     T: Addressable,
 {
-    fn interupt(&mut self, tp: impl Into<crate::Interupt>) -> Result<(), InteruptError> {
+    fn interrupt(
+        &mut self,
+        tp: impl Into<crate::Interrupt>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let int_addr = match tp.into() {
             0 => IRQB,
             _ => NMIB,
@@ -693,7 +694,7 @@ where
         }
 
         let Address::Full(addr, page) = Address::from(self.PC - 1) else {
-            return Err("Could not construct address from PC".to_string());
+            return Err("could not construct address from PC".into());
         };
         self.stack_push(page)?;
         self.stack_push(addr)?;
@@ -707,12 +708,12 @@ where
     }
 }
 
-impl<T> Resetable for Cpu<T>
+impl<T> Resettable for Cpu<T>
 where
     T: Addressable,
 {
     /// Reset processor
-    fn reset(&mut self) -> Result<(), crate::ResetError> {
+    fn reset(&mut self) -> Result<(), Box<dyn Error>> {
         self.SP = SP_ADDR;
         self.PC = self.read_word(RESB)?;
 
@@ -729,8 +730,8 @@ where
         // self.V = false; // *
         // self.N = false; // *
 
-        if let Mode::Orginal(_) = self.mode {
-            self.mode = Mode::Orginal(0);
+        if let Mode::Original(_) = self.mode {
+            self.mode = Mode::Original(0);
         }
 
         Ok(())

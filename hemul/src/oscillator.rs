@@ -1,6 +1,9 @@
-use std::time::{Duration, Instant};
+use std::{
+    error::Error,
+    time::{Duration, Instant},
+};
 
-use crate::{TickError, Tickable};
+use crate::Tickable;
 
 pub struct Oscillator {
     last_pass: Instant,
@@ -32,14 +35,14 @@ impl Oscillator {
 }
 
 impl Tickable for Oscillator {
-    fn tick(&mut self) -> Result<(), TickError> {
+    fn tick(&mut self) -> Result<(), Box<dyn Error>> {
         let now = Instant::now();
         let delta = now - self.last_pass;
         if delta > self.delta {
             for (name, device) in &mut self.devices {
                 device
                     .tick()
-                    .map_err(|e| format!("Failed to tick '{name}': {e}"))?;
+                    .map_err(|e| format!("failed to tick '{name}': {e}"))?;
             }
             self.last_pass = now;
         }

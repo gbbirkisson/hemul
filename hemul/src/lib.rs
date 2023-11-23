@@ -1,4 +1,7 @@
-use std::ops::{Index, IndexMut};
+use std::{
+    error::Error,
+    ops::{Index, IndexMut},
+};
 
 pub mod bus;
 pub mod cpu;
@@ -12,33 +15,29 @@ pub trait Addressable: Index<Word, Output = Byte> + IndexMut<Word, Output = Byte
     fn inside_bounds(&self, addr: Word) -> bool;
 }
 
-pub type TickError = String;
 pub trait Tickable {
-    fn tick(&mut self) -> Result<(), TickError>;
+    fn tick(&mut self) -> Result<(), Box<dyn Error>>;
 }
 
-pub type ResetError = String;
-pub trait Resetable {
-    fn reset(&mut self) -> Result<(), ResetError>;
+pub trait Resettable {
+    fn reset(&mut self) -> Result<(), Box<dyn Error>>;
 }
 
-pub type Interupt = u8;
-pub type InteruptError = String;
+pub type Interrupt = u8;
 pub trait Interuptable {
-    fn interupt(&mut self, tp: impl Into<Interupt>) -> Result<(), InteruptError>;
+    fn interrupt(&mut self, tp: impl Into<Interrupt>) -> Result<(), Box<dyn Error>>;
 }
 
 pub trait Snapshottable {
     type Snapshot;
-    type Error;
 
-    fn snapshot(&self) -> Result<Self::Snapshot, Self::Error>;
+    fn snapshot(&self) -> Result<Self::Snapshot, Box<dyn Error>>;
 }
 
 #[macro_export]
 macro_rules! asm {
     ($a:expr) => {{
-        use hemul::Resetable;
+        use hemul::Resettable;
         let mut cpu = hemul::cpu::Cpu::new(hemul::memory::Memory::from($a));
         let _ = cpu.reset();
         cpu
