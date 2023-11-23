@@ -1,18 +1,16 @@
-use std::ops::{Index, IndexMut};
+use std::{
+    error::Error,
+    ops::{Index, IndexMut},
+};
 
 use crate::{Addressable, Byte, Snapshottable, Word};
 
+#[derive(Default)]
 pub struct Bus {
     devices: Vec<(String, Word, Word, Box<dyn Addressable>)>,
 }
 
 impl Bus {
-    pub fn new() -> Self {
-        Self {
-            devices: Vec::new(),
-        }
-    }
-
     pub fn connect(
         &mut self,
         name: impl Into<String>,
@@ -61,9 +59,8 @@ impl IndexMut<Word> for Bus {
 
 impl Snapshottable for Bus {
     type Snapshot = Vec<Byte>;
-    type Error = ();
 
-    fn snapshot(&self) -> Result<Self::Snapshot, Self::Error> {
+    fn snapshot(&self) -> Result<Self::Snapshot, Box<dyn Error>> {
         let mut end = Word::MIN;
         for (_, _, e, _) in &self.devices {
             if &end < e {

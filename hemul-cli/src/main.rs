@@ -30,7 +30,7 @@ fn main() {
         Memory::from(args.bin.as_bytes())
     };
 
-    let mut bus = Bus::new();
+    let mut bus = Bus::default();
     bus.connect("memory", 0, Word::MAX, Box::new(memory));
 
     let cpu = Cpu::new(bus);

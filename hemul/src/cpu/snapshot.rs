@@ -2,6 +2,7 @@ use crate::{Addressable, Snapshottable};
 
 use super::{Byte, Cpu, PFlag, Word};
 use std::{
+    error::Error,
     io::prelude::*,
     process::{Command, Stdio},
 };
@@ -27,7 +28,7 @@ pub struct Snapshot {
     pub C: PFlag,
     /// Zero Flag
     pub Z: PFlag,
-    /// Interupt Disable
+    /// Interrupt Disable
     pub I: PFlag,
     /// Decimal Mode
     pub D: PFlag,
@@ -90,14 +91,10 @@ where
     T: Addressable + Snapshottable<Snapshot = Vec<u8>>,
 {
     type Snapshot = Snapshot;
-    type Error = String;
 
-    fn snapshot(&self) -> Result<Self::Snapshot, Self::Error> {
+    fn snapshot(&self) -> Result<Self::Snapshot, Box<dyn Error>> {
         Ok(Snapshot {
-            dump: self
-                .addr
-                .snapshot()
-                .map_err(|_| "Failed to snap addresses")?,
+            dump: self.addr.snapshot()?,
 
             PC: self.PC,
             SP: self.SP,

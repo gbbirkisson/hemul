@@ -53,7 +53,7 @@ branch:
             as_hex(status),
             )
         );
-        assert_eq!(snapshot.X, if branch { 0x01 } else { 0x02 })
+        assert_eq!(snapshot.X, if branch { 0x01 } else { 0x02 });
     }
 }
 

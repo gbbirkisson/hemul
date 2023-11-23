@@ -26,7 +26,7 @@ You will need these binaries in your path to do testing:
 
 ## Running the emulator
 
-With assemly code:
+With assembly code:
 
 ```console
 $ cat << EOF | cargo run -p hemul-cli -- -b - -a

@@ -1,4 +1,5 @@
-use crate::{cpu::Error, Byte};
+use super::CpuError;
+use crate::Byte;
 
 /// The 6502 instruction set
 #[derive(Debug, Clone)]
@@ -625,7 +626,7 @@ macro_rules! op {
 }
 
 impl TryFrom<Byte> for Op {
-    type Error = Error;
+    type Error = CpuError;
 
     #[allow(clippy::too_many_lines)]
     fn try_from(value: Byte) -> Result<Self, Self::Error> {
@@ -814,7 +815,7 @@ impl TryFrom<Byte> for Op {
             0x40 => op!(Rti, Implicit, 6),
 
             _ => {
-                return Err(Error::BadOpCode(value));
+                return Err(CpuError::BadOpCode(value));
             }
         })
     }
