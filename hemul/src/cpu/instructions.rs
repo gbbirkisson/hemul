@@ -3,6 +3,7 @@ use crate::Byte;
 
 /// The 6502 instruction set
 #[derive(Debug, Clone)]
+#[allow(clippy::doc_markdown)]
 pub enum OpCode {
     // Load/Store Operations
     // These instructions transfer a single byte between memory and one of the registers. Load
