@@ -95,6 +95,7 @@ impl From<&str> for Memory {
 
         // let child = Command::new("xa")
         //     .args(["-o", "-", "/dev/stdin"])
+        #[allow(clippy::zombie_processes)]
         let child = Command::new(bin)
             .args([
                 "-Fbin",
