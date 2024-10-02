@@ -61,6 +61,7 @@ impl std::fmt::Debug for Snapshot {
         )?;
         write!(f, "\n\n")?;
 
+        #[allow(clippy::zombie_processes)]
         let child = Command::new("hexdump")
             .args(["-C"])
             .stdin(Stdio::piped())
