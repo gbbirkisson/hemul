@@ -19,7 +19,7 @@ impl From<Address> for Word {
         };
         let addr = Self::from(addr);
         let page = Self::from(page);
-        page << 8 | addr
+        (page << 8) | addr
     }
 }
 
