@@ -666,7 +666,7 @@ where
             }
             (OpCode::Nop, _) => {}
             (op, mode) => todo!("{:?}({:?})", op, mode),
-        };
+        }
 
         if let Mode::Original(_) = self.mode {
             self.mode = Mode::Original(noop);
