@@ -9,7 +9,7 @@ on:
 jobs:
   ci:
     name: Lint
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout
@@ -33,7 +33,7 @@ jobs:
 
   test:
     name: Test
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     container:
       image: xd009642/tarpaulin:0.31.5
       options: --security-opt seccomp=unconfined
