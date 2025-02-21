@@ -1,4 +1,4 @@
-use hemul::{cpu::snapshot::Snapshot, Byte};
+use hemul::{Byte, cpu::snapshot::Snapshot};
 use proptest::prelude::*;
 
 extern crate hemul;
