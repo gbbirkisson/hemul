@@ -1,6 +1,6 @@
 use clap::Parser;
 use clap_stdin::MaybeStdin;
-use hemul::{bus::Bus, cpu::Cpu, memory::Memory, oscillator::Oscillator, Tickable, Word};
+use hemul::{Tickable, Word, bus::Bus, cpu::Cpu, memory::Memory, oscillator::Oscillator};
 
 /// Hemul VM
 #[derive(Parser, Debug)]
