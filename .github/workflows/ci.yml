@@ -9,7 +9,7 @@ on:
 jobs:
   ci:
     name: Lint
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout
@@ -33,10 +33,11 @@ jobs:
 
   test:
     name: Test
-    runs-on: ubuntu-22.04
-    container:
-      image: xd009642/tarpaulin:0.32.4
-      options: --security-opt seccomp=unconfined
+    runs-on: ubuntu-24.04
+
+    # container:
+    #   image: xd009642/tarpaulin:0.32.7
+    #   options: --security-opt seccomp=unconfined
 
     steps:
       - name: Checkout
@@ -57,11 +58,12 @@ jobs:
 
       - name: "Install hexdump"
         run: |
-          apt update && apt install bsdmainutils -y
+          sudo apt update && sudo apt install bsdmainutils -y
 
       - name: Run tests
         run: |
-          cargo tarpaulin --verbose --all-features --workspace --timeout 120 --out xml
+          make test
+          # cargo tarpaulin --workspace --timeout 120 --out xml
 
-      - name: Upload to codecov.io
-        uses: codecov/codecov-action@v5
+      # - name: Upload to codecov.io
+      #   uses: codecov/codecov-action@v5
