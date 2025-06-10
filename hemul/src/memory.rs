@@ -77,26 +77,13 @@ impl From<String> for Memory {
 #[allow(clippy::fallible_impl_from)]
 impl From<&str> for Memory {
     fn from(value: &str) -> Self {
-        // Fallback to bin in repo
-        let bin = match Command::new("vasm6502_oldstyle")
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()
-        {
-            Ok(_) => "vasm6502_oldstyle",
-            Err(e) => {
-                if e.kind() == std::io::ErrorKind::NotFound {
-                    "../bin/vasm6502_oldstyle"
-                } else {
-                    panic!("failed running vasm6502_oldstyle");
-                }
-            }
-        };
+        // Get vasm6502_oldstyle path with fallback logic
+        let bin = std::env::var("VASM6502_OLDSTYLE").unwrap_or("vasm6502_oldstyle".to_string());
 
         // let child = Command::new("xa")
         //     .args(["-o", "-", "/dev/stdin"])
         #[allow(clippy::zombie_processes)]
-        let child = Command::new(bin)
+        let child = Command::new(&bin)
             .args([
                 "-Fbin",
                 "-dotdir",
