@@ -78,7 +78,8 @@ impl From<String> for Memory {
 impl From<&str> for Memory {
     fn from(value: &str) -> Self {
         // Get vasm6502_oldstyle path with fallback logic
-        let bin = std::env::var("VASM6502_OLDSTYLE").unwrap_or("vasm6502_oldstyle".to_string());
+        let bin =
+            std::env::var("VASM6502_OLDSTYLE").unwrap_or_else(|_| "vasm6502_oldstyle".to_string());
 
         // let child = Command::new("xa")
         //     .args(["-o", "-", "/dev/stdin"])

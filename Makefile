@@ -5,7 +5,7 @@ TEST_ARGS?=-p hemul
 VASM6502_OLDSTYLE?=$(PWD)/bin/vasm6502_oldstyle
 
 .PHONY: dev
-dev: test lint
+dev: lint test
 
 .PHONY: test
 test:
