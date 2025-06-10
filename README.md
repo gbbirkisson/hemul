@@ -1,21 +1,29 @@
-<img align="right" height="128" src="logo.png">
+<h1>
+  <p align="center">
+    <a href="https://github.com/gbbirkisson/hemul">
+      <img src="https://raw.githubusercontent.com/gbbirkisson/hemul/main/logo.png" alt="Logo" height="128">
+    </a>
+    <br>hemul
+  </p>
+</h1>
 
-<h1>hemul</h1>
-
-[![GitHub last commit (branch)](https://img.shields.io/github/last-commit/gbbirkisson/hemul/main)](https://github.com/gbbirkisson/hemul/commits/main)
-[![CI](https://github.com/gbbirkisson/hemul/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/gbbirkisson/hemul/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/github/gbbirkisson/hemul/branch/main/graph/badge.svg?token=GFZ3Y0Y2X6)](https://codecov.io/github/gbbirkisson/hemul)
-[![GitHub](https://img.shields.io/github/license/gbbirkisson/hemul)](https://github.com/gbbirkisson/hemul/blob/main/LICENSE)
-
-Emulation of the 6502 micro processor, because why not 🤷 The project is named h[emu]l after the "Hemul" from the "Moomin" francise.
-
-<!-- vim-markdown-toc GFM -->
-
-* [Requirements](#requirements)
-* [Running the emulator](#running-the-emulator)
-* [Resources](#resources)
-
-<!-- vim-markdown-toc -->
+<p align="center">
+    <a href="https://github.com/gbbirkisson/hemul/commits/main">
+        <img src="https://img.shields.io/github/last-commit/gbbirkisson/hemul/main">
+    </a>
+    <a href="https://github.com/gbbirkisson/hemul/actions/workflows/ci.yml">
+        <img src="https://github.com/gbbirkisson/hemul/actions/workflows/ci.yml/badge.svg?branch=main">
+    </a>
+    <a href="https://codecov.io/github/gbbirkisson/hemul">
+        <img src="https://codecov.io/github/gbbirkisson/hemul/branch/main/graph/badge.svg?token=GFZ3Y0Y2X6">
+    </a>
+    <a href="https://github.com/gbbirkisson/hemul/blob/main/LICENSE">
+        <img src="https://img.shields.io/github/license/gbbirkisson/hemul">
+    </a>
+    <p align="center">
+        Emulation of the 6502 micro processor, because why not 🤷 The project is named h<b>emu</b>l after the "Hemul" from the "Moomin" francise.
+    </p>
+</p>
 
 ## Requirements
 

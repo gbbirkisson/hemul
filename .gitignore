@@ -2,3 +2,4 @@
 *.proptest-regressions
 
 tarpaulin-report.html
+.claude

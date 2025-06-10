@@ -2,19 +2,21 @@ CLIPPY_ARGS=-W clippy::pedantic -W clippy::nursery -W clippy::unwrap_used -A cli
 
 TEST?=
 TEST_ARGS?=-p hemul
+VASM6502_OLDSTYLE?=$(PWD)/bin/vasm6502_oldstyle
 
-dev: test lint
+.PHONY: dev
+dev: lint test
 
 .PHONY: test
 test:
 	@ which hexdump > /dev/null || (echo "hexdump is not installed" && false)
-	cargo test ${TEST_ARGS} ${TEST}
+	VASM6502_OLDSTYLE=$(VASM6502_OLDSTYLE) cargo test ${TEST_ARGS} ${TEST}
 
 .PHONY: coverage
 coverage:
 	@ which hexdump > /dev/null || (echo "hexdump is not installed" && false)
 	rm -f tarpaulin-report.html
-	cargo tarpaulin --out html ${TEST_ARGS} -- ${TEST}
+	VASM6502_OLDSTYLE=$(VASM6502_OLDSTYLE) cargo tarpaulin --out html ${TEST_ARGS} -- ${TEST}
 	xdg-open tarpaulin-report.html
 
 .PHONY: lint
