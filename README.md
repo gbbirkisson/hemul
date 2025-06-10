@@ -20,16 +20,10 @@
     <a href="https://github.com/gbbirkisson/hemul/blob/main/LICENSE">
         <img src="https://img.shields.io/github/license/gbbirkisson/hemul">
     </a>
-    Emulation of the 6502 micro processor, because why not 🤷 The project is named h[emu]l after the "Hemul" from the "Moomin" francise.
+    <p align="center">
+        Emulation of the 6502 micro processor, because why not 🤷 The project is named h<b>emu</b>l after the "Hemul" from the "Moomin" francise.
+    </p>
 </p>
-
-<!-- vim-markdown-toc GFM -->
-
-* [Requirements](#requirements)
-* [Running the emulator](#running-the-emulator)
-* [Resources](#resources)
-
-<!-- vim-markdown-toc -->
 
 ## Requirements
 
