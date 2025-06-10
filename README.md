@@ -8,10 +8,6 @@
 </h1>
 
 <p align="center">
-Emulation of the 6502 micro processor, because why not 🤷 The project is named h[emu]l after the "Hemul" from the "Moomin" francise.
-</p>
-
-<p align="center">
     <a href="https://github.com/gbbirkisson/hemul/commits/main">
         <img src="https://img.shields.io/github/last-commit/gbbirkisson/hemul/main">
     </a>
@@ -24,6 +20,7 @@ Emulation of the 6502 micro processor, because why not 🤷 The project is named
     <a href="https://github.com/gbbirkisson/hemul/blob/main/LICENSE">
         <img src="https://img.shields.io/github/license/gbbirkisson/hemul">
     </a>
+    Emulation of the 6502 micro processor, because why not 🤷 The project is named h[emu]l after the "Hemul" from the "Moomin" francise.
 </p>
 
 <!-- vim-markdown-toc GFM -->
