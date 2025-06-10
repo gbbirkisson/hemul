@@ -12,10 +12,18 @@ Emulation of the 6502 micro processor, because why not 🤷 The project is named
 </p>
 
 <p align="center">
-[![GitHub last commit (branch)](https://img.shields.io/github/last-commit/gbbirkisson/hemul/main)](https://github.com/gbbirkisson/hemul/commits/main)
-[![CI](https://github.com/gbbirkisson/hemul/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/gbbirkisson/hemul/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/github/gbbirkisson/hemul/branch/main/graph/badge.svg?token=GFZ3Y0Y2X6)](https://codecov.io/github/gbbirkisson/hemul)
-[![GitHub](https://img.shields.io/github/license/gbbirkisson/hemul)](https://github.com/gbbirkisson/hemul/blob/main/LICENSE)
+    <a href="https://github.com/gbbirkisson/hemul/commits/main">
+        <img src="https://img.shields.io/github/last-commit/gbbirkisson/hemul/main">
+    </a>
+    <a href="https://github.com/gbbirkisson/hemul/actions/workflows/ci.yml">
+        <img src="https://github.com/gbbirkisson/hemul/actions/workflows/ci.yml/badge.svg?branch=main">
+    </a>
+    <a href="https://codecov.io/github/gbbirkisson/hemul">
+        <img src="https://codecov.io/github/gbbirkisson/hemul/branch/main/graph/badge.svg?token=GFZ3Y0Y2X6">
+    </a>
+    <a href="https://github.com/gbbirkisson/hemul/blob/main/LICENSE">
+        <img src="https://img.shields.io/github/license/gbbirkisson/hemul">
+    </a>
 </p>
 
 <!-- vim-markdown-toc GFM -->
