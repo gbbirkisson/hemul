@@ -3,6 +3,7 @@ CLIPPY_ARGS=-W clippy::pedantic -W clippy::nursery -W clippy::unwrap_used -A cli
 TEST?=
 TEST_ARGS?=-p hemul
 
+.PHONY: dev
 dev: test lint
 
 .PHONY: test

@@ -4,7 +4,7 @@ use self::{
     address::Address,
     instructions::{AddressMode, Cycles, OpCode},
 };
-use crate::{Addressable, Byte, Interuptable, Resettable, Tickable, Word};
+use crate::{Addressable, Byte, Interuptible, Resettable, Tickable, Word};
 use instructions::Op;
 use thiserror::Error;
 
@@ -676,7 +676,7 @@ where
     }
 }
 
-impl<T> Interuptable for Cpu<T>
+impl<T> Interuptible for Cpu<T>
 where
     T: Addressable,
 {
