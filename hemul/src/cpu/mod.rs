@@ -4,7 +4,7 @@ use self::{
     address::Address,
     instructions::{AddressMode, Cycles, OpCode},
 };
-use crate::{Addressable, Byte, Interuptible, Resettable, Tickable, Word};
+use crate::{Addressable, Byte, Interruptible, Resettable, Tickable, Word};
 use instructions::Op;
 use thiserror::Error;
 
@@ -19,6 +19,15 @@ pub const SP_ADDR: Byte = 0xFF;
 pub const NMIB: Word = 0xFFFA; // + 0xFFFB
 pub const RESB: Word = 0xFFFC; // + 0xFFFD
 pub const IRQB: Word = 0xFFFE; // + 0xFFFF
+
+// Status register flag bits
+const C_FLAG: Byte = 0b0100_0000; // Carry
+const Z_FLAG: Byte = 0b0010_0000; // Zero
+const I_FLAG: Byte = 0b0001_0000; // Interrupt Disable
+const D_FLAG: Byte = 0b0000_1000; // Decimal Mode
+const B_FLAG: Byte = 0b0000_0100; // Break Command
+const V_FLAG: Byte = 0b0000_0010; // Overflow
+const N_FLAG: Byte = 0b0000_0001; // Negative
 
 /// Cpu mode
 pub enum Mode {
@@ -210,38 +219,38 @@ where
     fn status_get(&self) -> Byte {
         let mut res = 0;
         if self.C {
-            res |= 0b0100_0000;
+            res |= C_FLAG;
         }
         if self.Z {
-            res |= 0b0010_0000;
+            res |= Z_FLAG;
         }
         if self.I {
-            res |= 0b0001_0000;
+            res |= I_FLAG;
         }
         if self.D {
-            res |= 0b0000_1000;
+            res |= D_FLAG;
         }
         if self.B {
-            res |= 0b0000_0100;
+            res |= B_FLAG;
         }
         if self.V {
-            res |= 0b0000_0010;
+            res |= V_FLAG;
         }
         if self.N {
-            res |= 0b0000_0001;
+            res |= N_FLAG;
         }
         res
     }
 
     /// Set status register
     fn status_set(&mut self, status: Byte) {
-        self.C = status & 0b0100_0000 > 0;
-        self.Z = status & 0b0010_0000 > 0;
-        self.I = status & 0b0001_0000 > 0;
-        self.D = status & 0b0000_1000 > 0;
-        self.B = status & 0b0000_0100 > 0;
-        self.V = status & 0b0000_0010 > 0;
-        self.N = status & 0b0000_0001 > 0;
+        self.C = status & C_FLAG > 0;
+        self.Z = status & Z_FLAG > 0;
+        self.I = status & I_FLAG > 0;
+        self.D = status & D_FLAG > 0;
+        self.B = status & B_FLAG > 0;
+        self.V = status & V_FLAG > 0;
+        self.N = status & N_FLAG > 0;
 
         assert!(!self.D, "Decimal Mode not supported");
     }
@@ -676,7 +685,7 @@ where
     }
 }
 
-impl<T> Interuptible for Cpu<T>
+impl<T> Interruptible for Cpu<T>
 where
     T: Addressable,
 {

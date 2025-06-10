@@ -24,7 +24,7 @@ pub trait Resettable {
 }
 
 pub type Interrupt = u8;
-pub trait Interuptible {
+pub trait Interruptible {
     fn interrupt(&mut self, tp: impl Into<Interrupt>) -> Result<(), Box<dyn Error>>;
 }
 
