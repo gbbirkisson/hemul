@@ -324,11 +324,11 @@ where
     #[allow(clippy::too_many_lines, clippy::cognitive_complexity)]
     fn tick(&mut self) -> Result<(), Box<dyn Error>> {
         // Burn cycles if we need to
-        if let Mode::Original(noop) = self.mode {
-            if noop > 0 {
-                self.mode = Mode::Original(noop - 1);
-                return Ok(());
-            }
+        if let Mode::Original(noop) = self.mode
+            && noop > 0
+        {
+            self.mode = Mode::Original(noop - 1);
+            return Ok(());
         }
 
         let Op(op, mode, cycles) = dbg!(self.fetch_op()?);
