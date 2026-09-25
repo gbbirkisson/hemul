@@ -31,6 +31,7 @@ proptest! {
     #[test]
     fn test_add_without_carry(a in 0..=255u8, b in 0..=255u8) {
         let snapshot = asm_test!(
+            // asm
             format!(
                 r#"
                 ;;
@@ -49,6 +50,7 @@ RESULT  = $4000
     #[test]
     fn test_add_with_carry(a in 0..=255u8, b in 0..=255u8) {
         let snapshot = asm_test!(
+            // asm
             format!(
                 r#"
                 ;;

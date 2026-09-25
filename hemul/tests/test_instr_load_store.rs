@@ -21,6 +21,7 @@ proptest! {
     #[test]
     fn test_instr_load_immediate(reg in registers(), (val, z, n) in zn_tests()) {
         let snapshot = asm_test!(
+            // asm
             format!(
                 r#"
                 ;;
@@ -39,6 +40,7 @@ proptest! {
     #[test]
     fn test_instr_load_zero_page(reg in registers(), (val, z, n) in zn_tests()) {
         let snapshot = asm_test!(
+            // asm
             format!(
                 r#"
                 ;;
@@ -61,6 +63,7 @@ proptest! {
         prop_assume!(reg != "X");
 
         let snapshot = asm_test!(
+            // asm
             format!(
                 r#"
                 ;;
@@ -82,6 +85,7 @@ proptest! {
     #[test]
     fn test_instr_load_zero_page_y((val, z, n) in zn_tests()) {
         let snapshot = asm_test!(
+            // asm
             format!(
                 r#"
                 ;;
@@ -102,6 +106,7 @@ proptest! {
     #[test]
     fn test_instr_load_absolute(reg in registers(), (val, z, n) in zn_tests()) {
         let snapshot = asm_test!(
+            // asm
             format!(
                 r#"
                 ;;
@@ -124,6 +129,7 @@ proptest! {
         prop_assume!(reg != "X");
 
         let snapshot = asm_test!(
+            // asm
             format!(
                 r#"
                 ;;
@@ -147,6 +153,7 @@ proptest! {
         prop_assume!(reg != "Y");
 
         let snapshot = asm_test!(
+            // asm
             format!(
                 r#"
                 ;;
@@ -168,6 +175,7 @@ proptest! {
     #[test]
     fn test_instr_load_indexed_indirect((val, z, n) in zn_tests()) {
         let snapshot = asm_test!(
+            // asm
             format!(
                 r#"
                 ;;
@@ -189,6 +197,7 @@ proptest! {
     #[test]
     fn test_instr_load_indirect_indexed((val, z, n) in zn_tests()) {
         let snapshot = asm_test!(
+            // asm
             format!(
                 r#"
                 ;;
@@ -211,6 +220,7 @@ proptest! {
     #[test]
     fn test_instr_store_zero_page(reg in registers()) {
         let snapshot = asm_test!(
+            // asm
             format!(
                 r#"
                 ;;
@@ -230,6 +240,7 @@ proptest! {
         prop_assume!(reg != "X");
 
         let snapshot = asm_test!(
+            // asm
             format!(
                 r#"
                 ;;
@@ -250,6 +261,7 @@ proptest! {
         prop_assume!(reg == "X");
 
         let snapshot = asm_test!(
+            // asm
             format!(
                 r#"
                 ;;
@@ -266,6 +278,7 @@ proptest! {
     #[test]
     fn test_instr_store_absolute(reg in registers()) {
         let snapshot = asm_test!(
+            // asm
             format!(
                 r#"
                 ;;
@@ -284,6 +297,7 @@ proptest! {
     fn test_instr_store_absolute_xy(reg in registers()) {
         prop_assume!(reg != "A");
         let snapshot = asm_test!(
+            // asm
             format!(
                 r#"
                 ;;

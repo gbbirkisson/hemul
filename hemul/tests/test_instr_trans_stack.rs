@@ -14,6 +14,7 @@ proptest! {
         prop_assume!(reg != "A");
 
         let snapshot = asm_test!(
+            // asm
             format!(
                 r#"
                 ;;
@@ -34,6 +35,7 @@ proptest! {
         prop_assume!(reg != "A");
 
         let snapshot = asm_test!(
+            // asm
             format!(
                 r#"
                 ;;

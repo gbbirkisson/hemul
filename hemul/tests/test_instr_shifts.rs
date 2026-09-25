@@ -24,6 +24,7 @@ proptest! {
     #[test]
     fn test_instr_shifts_left_accumulator(op in left(), mode in addr_mode(), a in 0..255u8) {
         let snapshot = asm_test!(
+            // asm
             format!(
             r#"
             ;;
@@ -52,6 +53,7 @@ proptest! {
     #[test]
     fn test_instr_shifts_right_accumulator(op in right(), mode in addr_mode(), a in 0..255u8) {
         let snapshot = asm_test!(
+            // asm
             format!(
             r#"
             ;;
@@ -80,6 +82,7 @@ proptest! {
     #[test]
     fn test_instr_shifts_rol_with_carry(a in 0..255u8) {
         let snapshot = asm_test!(
+            // asm
             format!(
             r#"
             ;;
@@ -103,6 +106,7 @@ proptest! {
     #[test]
     fn test_instr_shifts_ror_with_carry(a in 0..255u8) {
         let snapshot = asm_test!(
+            // asm
             format!(
             r#"
             ;;

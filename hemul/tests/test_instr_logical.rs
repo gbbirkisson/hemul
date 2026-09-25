@@ -12,6 +12,7 @@ proptest! {
     #[test]
     fn test_instr_logical_and(a in 0..255u8, b in 0..255u8) {
         let snapshot = asm_test!(
+            // asm
             format!(
             r#"
             ;;
@@ -34,6 +35,7 @@ proptest! {
     #[test]
     fn test_instr_logical_eor(a in 0..255u8, b in 0..255u8) {
         let snapshot = asm_test!(
+            // asm
             format!(
             r#"
             ;;
@@ -56,6 +58,7 @@ proptest! {
     #[test]
     fn test_instr_logical_ora(a in 0..255u8, b in 0..255u8) {
         let snapshot = asm_test!(
+            // asm
             format!(
             r#"
             ;;
@@ -78,6 +81,7 @@ proptest! {
     #[test]
     fn test_instr_logical_bit(a in 0..255u8, b in 0..255u8) {
         let snapshot = asm_test!(
+            // asm
             format!(
             r#"
             ;;

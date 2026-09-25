@@ -34,6 +34,7 @@ proptest! {
     #[test]
     fn test_instr_branch((op, status, branch) in cases()) {
         let snapshot = asm_test!(
+            // asm
             format!(
             r#"
             ;;

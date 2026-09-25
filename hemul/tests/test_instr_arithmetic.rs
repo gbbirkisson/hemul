@@ -12,6 +12,7 @@ proptest! {
     #[test]
     fn test_instr_arithmetic_adc_no_carry(a in 0..255u8, b in 0..255u8) {
         let snapshot = asm_test!(
+            // asm
             format!(
             r#"
             ;;
@@ -36,6 +37,7 @@ proptest! {
     #[test]
     fn test_instr_arithmetic_adc_with_carry(a in 0..255u8, b in 0..255u8) {
         let snapshot = asm_test!(
+            // asm
             format!(
             r#"
             ;;
@@ -62,6 +64,7 @@ proptest! {
     #[test]
     fn test_instr_arithmetic_sbc_no_carry(a in 0..255u8, b in 0..255u8) {
         let snapshot = asm_test!(
+            // asm
             format!(
             r#"
             ;;
@@ -87,6 +90,7 @@ proptest! {
     #[test]
     fn test_instr_arithmetic_sbc_with_carry(a in 0..255u8, b in 0..255u8) {
         let snapshot = asm_test!(
+            // asm
             format!(
             r#"
             ;;
@@ -118,6 +122,7 @@ proptest! {
             _ => unreachable!(),
         };
         let snapshot = asm_test!(
+            // asm
             format!(
             r#"
             ;;
@@ -143,6 +148,7 @@ proptest! {
     #[test]
     fn test_instr_arithmetic_inc_memory(a in 0..255u8) {
         let snapshot = asm_test!(
+            // asm
             format!(
             r#"
             ;;
@@ -165,6 +171,7 @@ proptest! {
     fn test_instr_arithmetic_inc_registers(reg in registers(), a in 0..255u8) {
         prop_assume!(reg != "A");
         let snapshot = asm_test!(
+            // asm
             format!(
             r#"
             ;;
@@ -189,6 +196,7 @@ proptest! {
     #[test]
     fn test_instr_arithmetic_dec_memory(a in 0..255u8) {
         let snapshot = asm_test!(
+            // asm
             format!(
             r#"
             ;;
@@ -211,6 +219,7 @@ proptest! {
     fn test_instr_arithmetic_dec_registers(reg in registers(), a in 0..255u8) {
         prop_assume!(reg != "A");
         let snapshot = asm_test!(
+            // asm
             format!(
             r#"
             ;;
